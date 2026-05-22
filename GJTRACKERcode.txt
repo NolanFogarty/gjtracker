@@ -1,0 +1,2844 @@
+Dim LOCATOR As String
+Dim PI As Double
+Dim TUPI As Double
+Dim RAD As Double
+Dim Deg As Double
+Dim sAdobeRdrPath As String
+Dim DXCSIGN As String
+Dim YCSIGN As String
+Dim CSIGN As String
+Dim YLatDir As String
+Dim YLonDir As String
+Dim TIMERON As Integer
+Dim UNITS As Integer
+Dim RT As Integer
+Dim PMAX As Integer
+Dim DATEJ As Single
+Dim MATCHNO As Integer
+Dim ESCANS As Integer
+Dim LatD As Single
+Dim LatM As Single
+Dim LatS As Single
+Dim LonS As Single
+Dim LonD As Single
+Dim LonM As Single
+Dim LatDir As String
+Dim LonDir As String
+Dim MaxDegradation As Single
+
+Dim TZ As Single
+Dim OBJECTNAME As String
+Dim Celestrial As Integer
+Dim OPERATION As Integer
+Dim editorpath As String
+Dim startdate As Date
+Dim enddate As Date
+Dim CALLSIGN As String
+Dim AD, AM, AY As Integer
+Dim ED, EM, EY As Integer
+Dim NewNote As String
+Dim NewLocator As String
+Dim RAT As Double
+Dim PREVDECT As Double
+Dim GAST As Single
+Dim RANGE As Single
+Dim DECT As Double
+Dim GHAT As Double
+Dim DEC As Double
+
+
+
+
+
+
+
+Private Function WKDAY(DATEJ) As String ''********************SUBROUTINE TO CALCULATE UTC DAY OF THE WEEK**********
+ WKDAY = 1 + DATEJ - Int(DATEJ / 7) * 7
+ On WKDAY GoTo 2995, 2997, 2999, 3001, 3003, 3005, 3007
+2995 WKDAY = "SUNDAY": GoTo 3008
+2997 WKDAY = "MONDAY": GoTo 3008
+2999 WKDAY = "TUESDAY": GoTo 3008
+3001 WKDAY = "WEDNESDAY": GoTo 3008
+3003 WKDAY = "THURSDAY": GoTo 3008
+3005 WKDAY = "FRIDAY": GoTo 3008
+3007 WKDAY = "SATURDAY"
+3008 'Continue
+End Function
+
+Private Function FNA(X) As Single 'converts radians to degrees and rounds to nearest tenth
+FNA = Int(X * (360 / (3.141592656 * 2)) * 10 + 0.5) / 10
+
+End Function
+ 
+Private Function FNB(X) As Single
+FNB = Int(X * 100 + 0.5) / 100
+End Function
+
+Private Function FNC(X) As Double
+
+FNC = (X - Int(X)) * (3.141592656 * 2)
+End Function
+
+Private Function FNR(A, B) As Double
+FNR = Int(A * B + 0.5) / B
+End Function
+Private Function FNL(X) As Double ' COMMON LOGARITHM OF X
+FNL = Log(X) / Log(10)
+End Function
+ 
+Private Function FNJULIAN(AY, AM, AD) As Single 'JULIAN DATE (MINUS 2397547.5) FOR 0000 HOURS UTC, YEARS 1900-2099
+FNJULIAN = 367 * AY - Int(7 * (AY + Int((AM + 9) / 12)) / 4) + Int(275 * AM / 9) + AD - 676534!
+End Function
+ 
+Private Function FNATAN2(S, C) As Double
+FNATAN2 = Atn(S / C) - Sgn(S) * 3.141592656 * (Fix(Sgn(C) - 0.5))
+ End Function
+ 
+Private Function FNPOL(AZ, EL, LAT) As Single 'CROSS POLARIZATION ANGLE WITH RESPECT TO EARTH AXIS IN DEGREES
+TUPI = 2 * 3.141592656
+Deg = 360 / TUPI
+FNPOL = Int(Atn((Sin(LAT) * Cos(EL) - Cos(LAT) * Cos(AZ) * Sin(EL)) / (Cos(LAT) * Sin(AZ))) * Deg)
+
+End Function
+
+Private Sub cboDayEnd_Click()
+'For I = 1 To 2
+If cboMonthEnd.ListIndex > -1 Then Let EM = cboMonthEnd.ListIndex + 1 Else Let EM = Val(cboMonthEnd.Text)
+If cboDayEnd.ListIndex > -1 Then Let ED = cboDayEnd.ListIndex + 1 Else Let ED = 1
+EY = Val(txtYearEnd.Text)
+On (EM) GoTo 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+28 If ED > 28 Then GoTo 29 Else GoTo 31
+29 Let Max = 28
+If (EY Mod 4) = 0 Then Let Max = 29
+If (EY Mod 100) = 0 Then Let Max = 28
+If (EY Mod 400 = 0) And (EY Mod 100 = 0) Then Max = 29
+If ED < Max Then GoTo 31 Else Let ED = Max
+GoTo 31
+30 If ED > 30 Then Let ED = 30: GoTo 31
+31 'Continue
+
+EM = cboMonthEnd.ListIndex + 1
+Let cboDayEnd.ListIndex = ED - 1
+EY = Val(txtYearEnd.Text)
+enddate = DateSerial(EY, EM, ED)
+
+AM = cboMonthStart.ListIndex + 1
+AD = cboDayStart.ListIndex + 1
+AY = Val(txtYearStart.Text)
+startdate = DateSerial(AY, AM, AD)
+
+If startdate - enddate > 0 Then Let txtYearEnd.Text = Str(EY + 1)
+  
+If enddate - startdate > 365 Then
+    cboMonthEnd.ListIndex = cboMonthStart.ListIndex
+    cboDayEnd.ListIndex = cboDayStart.ListIndex
+    txtYearEnd.Text = Str(Val(txtYearStart.Text) + 1)
+    MsgBox "Because output is being written to a file for use with Notepad, calculation periods are limited to one year.", , "Output File Size Exceeded"
+
+End If
+
+
+'Next I
+
+
+
+End Sub
+
+Private Sub cboDayStart_Click()
+
+AM = cboMonthStart.ListIndex + 1
+If cboDayStart.ListIndex > -1 Then Let AD = cboDayStart.ListIndex + 1 Else Let AD = Val(cboDayStart.Text)
+AY = Val(txtYearStart.Text)
+On (AM) GoTo 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+28 If AD > 28 Then GoTo 29 Else GoTo 31
+29 Let Max = 28
+If (AY Mod 4) = 0 Then Let Max = 29
+If (AY Mod 100) = 0 Then Let Max = 28
+If (AY Mod 400 = 0) And (AY Mod 100 = 0) Then Max = 29
+If AD < Max Then GoTo 31 Else Let AD = Max
+GoTo 31
+30 If AD > 30 Then Let AD = 30: GoTo 31
+31 'Continue
+Let cboDayStart.ListIndex = AD - 1
+Let txtYearStart.Text = Str(AY)
+startdate = DateSerial(AY, AM, AD)
+startdate = DateValue(Str(startdate))
+
+EM = cboMonthEnd.ListIndex + 1
+EY = Val(txtYearEnd.Text)
+ED = cboDayEnd.ListIndex + 1
+enddate = DateSerial(EY, EM, ED)
+enddate = DateValue(Str(enddate))
+
+If startdate > enddate Then
+    cboMonthEnd.ListIndex = cboMonthStart.ListIndex
+    cboDayEnd.ListIndex = cboDayStart.ListIndex
+    txtYearEnd.Text = txtYearStart.Text
+End If
+Call cboDayEnd_Click
+End Sub
+
+
+
+
+Private Sub cboMonthEnd_Click()
+If cboMonthEnd.ListIndex > -1 Then Let EM = cboMonthEnd.ListIndex + 1 Else Let EM = Val(cboMonthEnd.Text)
+
+Call cboDayEnd_Click
+
+End Sub
+
+Private Sub cboMonthStart_Click()
+
+If cboDayStart.ListIndex > -1 Then Let AD = cboDayStart.ListIndex + 1 Else Let AD = Val(cboDayStart.Text)
+
+Call cboDayStart_Click
+
+
+End Sub
+
+Private Sub chkDisplayDX_Click()
+frmRT.PicMap.Cls
+End Sub
+
+Private Sub chkDisplayHome_Click()
+frmRT.PicMap.Cls
+End Sub
+
+Private Sub cmdAddDX_Click()
+
+txtNotesDX.Visible = True
+
+Let CSIGN$ = txtCallsignDX.Text
+Let LOCATOR = txtLocatorDX.Text
+Let Note$ = txtNotesDX.Text
+
+frmUpdate.txtOldCallsign = txtCallsignDX.Text
+frmUpdate.txtOldLocator.Text = txtLocatorDX.Text
+frmUpdate.txtOldNotes.Text = txtNotesDX.Text
+
+Call Call3Update(CSIGN$, LOCATOR, Note$)
+
+If CSIGN$ = "" Then
+    Let txtNotesDX.Text = ""
+    Let txtCallsignDX.Text = ""
+    Let txtLocatorDX.Text = ""
+    GoTo 9999
+End If
+Let txtCallsignDX.Text = CSIGN$
+If Len(Note$) > 0 Then Let txtNotesDX.Text = Note$
+If Len(LOCATOR) > 3 Then Let txtLocatorDX.Text = LOCATOR
+If Len(LOCATOR) = 0 Then GoTo 9999
+Call cmdLocatorDXCalc_Click
+9999 ' Continue
+
+End Sub
+
+Private Sub cmdAddHome_Click()
+
+txtNotesHome.Visible = True
+
+Let CSIGN$ = txtCallsignHome.Text
+Let LOCATOR = txtLocatorHome.Text
+Let Note$ = txtNotesHome.Text
+
+frmUpdate.txtOldCallsign = txtCallsignHome.Text
+frmUpdate.txtOldLocator.Text = txtLocatorHome.Text
+frmUpdate.txtOldNotes.Text = txtNotesHome.Text
+
+Call Call3Update(CSIGN$, LOCATOR, Note$)
+
+If CSIGN$ = "" Then
+    Let txtNotesHome.Text = ""
+    Let txtCallsignHome.Text = ""
+    Let txtLocatorHome.Text = ""
+    GoTo 9999
+End If
+Let txtCallsignHome.Text = CSIGN$
+If Len(Note$) > 0 Then Let txtNotesHome.Text = Note$
+If Len(LOCATOR) > 3 Then Let txtLocatorHome.Text = LOCATOR
+If Len(LOCATOR) = 0 Then GoTo 9999
+Call cmdLocatorHomeCalc_Click
+9999 ' Continue
+End Sub
+Private Sub Call3Update(CSIGN$, LOCATOR, Note$)
+Dim Deletecall As Integer: Dim NewNote As String: Dim NewLocator As String
+If Len(Note$) = 0 Then Let NewNote = ",EME,,,," Else Let NewNote = Note$
+NewLocator = LOCATOR
+Let Deletecall = 0
+
+' Check for presence of file
+    If Dir("CALL3.TXT") = "" Then GoTo 2 Else GoTo 3
+2   message = "The file is not where expected.  Make sure all the GJTRACKER files are in the same location as GJTRACKER.EXE!"
+    MsgBox message, , "File Not Found"
+    End
+3     GoTo 9600
+
+9500 'Prepare to add new record
+    frmUpdate.lblUpdate.Caption = "A new record is shown below.  Please confirm that you want to add this new record!"
+    frmUpdate.lblRecno.Visible = False
+    frmUpdate.txtRecordNumber.Visible = False
+    frmUpdate.cmdREPLACE.Caption = "ADD NEW"
+    frmUpdate.cmdDelete.Visible = False
+    frmUpdate.txtOldLocator.Text = NewLocator
+    frmUpdate.txtOldCallsign.Text = CSIGN$
+    frmUpdate.txtOldNotes.Text = NewNote
+    
+    If CSIGN$ = RTrim(txtCallsignHome.Text) Then GoTo 9510 Else GoTo 9512
+9510 frmUpdate.txtOldLocator.Text = txtLocatorHome.Text
+    If Len(txtNotesHome.Text) = 0 Then Let frmUpdate.txtOldNotes = ",EME,,,," Else Let frmUpdate.txtOldNotes.Text = txtNotesHome.Text
+    
+GoTo 9520
+
+9512    If CSIGN$ = txtCallsignDX.Text Then GoTo 9514 Else GoTo 9516
+9514  frmUpdate.txtOldLocator.Text = txtLocatorDX.Text
+    If Len(txtNotesDX.Text) = 0 Then Let frmUpdate.txtOldNotes = ",EME,,,," Else Let frmUpdate.txtOldNotes.Text = txtNotesDX.Text
+    
+GoTo 9520
+9516 frmUpdate.txtOldLocator.Text = LOCATOR
+    frmUpdate.txtOldNotes.Text = Note$
+
+9520    frmUpdate.Show vbModal
+    NewNote = frmUpdate.txtOldNotes.Text
+    NewLocator = frmUpdate.txtOldLocator.Text
+    Let Deletecall = 0: Let txtDelete.Text = ""
+    If txtReplace.Text = "Replace" Then GoTo 9800
+    If txtCancel.Text = "Cancel" Then GoTo 9999
+    
+GoTo 9999
+
+9600 Dim I As Integer: EMECALL = "": Wild = 15: calllength = 0
+mstrLastDir = App.Path ' Set program location as the default directory for all files
+'NewLocator = LOCATOR
+'NewNote = Note
+Dim Dummy(1 To 10000) As String
+Dim record As String
+Let sortno = 0
+Let recno = 0
+Let endno = 0
+CSIGN$ = RTrim(CSIGN$)
+'Check to see if locator is complete
+If Len(RTrim(LOCATOR)) < 6 Then GoTo 9990
+' Check to see if callsign is complete
+If Len(RTrim(CSIGN$)) < 3 Then GoTo 9990
+If RTrim(CSIGN$) >= "ZZZZZZ" Then GoTo 9990
+    Let calllength = Len(RTrim(CSIGN$))
+     For Z = 1 To calllength
+        If Mid(CSIGN$, Z, 1) = "*" Then GoTo 9990 Else GoTo 9602
+9602 Next Z
+     'WILD = calllength
+     
+' Check to see if an exact record already exists
+
+Call LookupCallsign(CSIGN$, LOCATOR, Note$, MATCHNO)
+frmUpdate.txtRecordNumber.Text = MATCHNO - 17
+
+9610 If MATCHNO > 0 Then GoTo 9724 Else GoTo 9500 'Display form and wait for answer if an existing record exists
+
+9724 frmUpdate.lblUpdate.Caption = "An existing record is shown below.  Please confirm that you want to replace the existing record."
+    frmUpdate.cmdDelete.Visible = True
+    frmUpdate.txtOldCallsign.Text = CSIGN$
+    frmUpdate.txtOldLocator.Text = NewLocator
+    frmUpdate.txtOldNotes.Text = NewNote
+    frmUpdate.lblRecno.Visible = True
+    frmUpdate.txtRecordNumber.Visible = True
+    frmUpdate.cmdREPLACE.Caption = "REPLACE"
+    frmUpdate.Show vbModal ' Show updating form
+    NewNote = frmUpdate.txtOldNotes.Text
+    NewLocator = frmUpdate.txtOldLocator.Text
+    If txtDelete.Text = "Delete" Then Let Deletecall = 1 Else Let Deletecall = 0
+    If Deletecall = 1 Then GoTo 9800
+    If txtReplace.Text = "Replace" Then GoTo 9800
+    If txtCancel.Text = "Cancel" Then GoTo 9999
+    
+GoTo 9999
+ 
+ 
+9800 'Change callsign
+'First read through CALL3.TXT
+'Let File$ = "txtCallLocation.Text" & "CALL3.TXT"
+
+Open "CALL3.TXT" For Input As #2
+Let I = 0: CSIGN = RTrim(CSIGN): Let sortno = 0
+9801 Let I = I + 1
+Line Input #2, Dummy(I)
+        If Left(Dummy(I), 6) = "ZZZZZZ" Then GoTo 9822
+        If Mid(Dummy(I), 1, 2) = "//" Then GoTo 9801 Else GoTo 9802
+9802            For PLACE = 1 To Len(Dummy(I))
+                    If Mid(Dummy(I), PLACE, 1) = "," Then GoTo 9803 Else GoTo 9820
+9803                EMECALL = Mid(Dummy(I), 1, PLACE - 1)
+                    If RTrim(EMECALL) < CSIGN Then GoTo 9805 Else GoTo 9801
+9805                Let sortno = I + 1 'record sortno
+                    GoTo 9801
+9820            Next PLACE
+9822 Close #2
+Let endno = I
+If MATCHNO = 0 Then Let endno = endno + 1 'A new record has to be inserted in the file
+
+9830 'Write out new CALL3.TXT file
+K = 0
+Open "CALL3.TXT" For Output As #2
+For I = 1 To endno
+    If (I = MATCHNO) And (K = 0) Then GoTo 9905 Else GoTo 9906
+9905    Let record = CSIGN & "," & NewLocator & "," & NewNote 're-write existing record
+    K = 1
+    If Deletecall = 1 Then GoTo 9950 ' go to next record without writing record to be deleted
+    GoTo 9941
+9906    If (I = sortno) And (K = 0) Then GoTo 9908 Else GoTo 9940
+
+9908    Let record = CSIGN & "," & NewLocator & "," & NewNote 'Prepare new record to insert
+    K = 1
+    Print #2, record 're-write next record
+    GoTo 9940
+9940 record = Dummy(I)
+9941 Print #2, record 're-write old records
+9950 Next I
+Close #2
+If Deletecall = 1 Then
+    Let CSIGN$ = ""
+    Let LOCATOR = ""
+    Let Note$ = ""
+    GoTo 9999
+End If
+GoTo 9998
+9990 MsgBox "Please enter complete station information before adding to the database.", , "Incomplete Callsign"
+LOCATOR = ""
+GoTo 9999
+9998 ' Continue
+MATCHNO = 0
+Call LookupCallsign(CSIGN, LOCATOR, Note, MATCHNO)
+
+9999 ' Continue
+txtReplace.Text = ""
+txtCancel.Text = ""
+txtDelete.Text = ""
+
+End Sub
+
+
+
+Private Sub cmdDXLookup_Click() '*******SUBROUTINE TO READ CALLSIGN AND LOCATOR FROM FILE CALL3.TXT ******
+ frmRT.PicMap.Cls
+ mstrLastDir = App.Path ' Set program location as the default directory for all files
+     
+     CSIGN$ = RTrim(txtCallsignDX.Text)
+        Dim N As Integer
+        Dim M As Integer
+    
+        For N = 1 To Len(CSIGN$)
+            Let M = Asc(Mid(CSIGN$, N, 1))
+            If M > 90 Then Let M = M - 32
+            Mid(CSIGN$, N, 1) = Chr(M)
+        Next N
+        Let txtCallsignDX.Text = CSIGN$
+        
+     Note$ = RTrim(txtNotesDX.Text)
+     txtNotesDX.Visible = False
+     Call LookupCallsign(CSIGN$, LOCATOR, Note$, MATCHNO)
+     txtCallsignDX.Text = CSIGN$: txtLocatorDX.Text = LOCATOR
+     
+If Left(txtDateCalc.Text, 5) = "Exact" Then GoTo 9740
+ txtNotesDX.Visible = False
+ txtNotesDX.Text = ""
+ txtDateCalc.Visible = False
+ txtDateCalc.Text = ""
+ GoTo 9800
+9740 Call cmdLocatorDXCalc_Click
+    txtNotesDX.Visible = True
+    txtNotesDX.Text = Note$
+        
+9800 'Continue
+frmUpdate.txtOldCallsign.Text = CSIGN$
+frmUpdate.txtOldLocator.Text = LOCATOR
+frmUpdate.txtOldNotes.Text = Note$
+
+End Sub
+
+Private Sub cmdEXIT_Click()
+If cmdStop.Visible = True Then GoTo 900
+Call cmdStop_Click
+
+900 'Continue
+End
+End Sub
+
+Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
+' Code from YO3DMU to completely unload the program if it is exited by hitting the red X button.
+Dim f As Form
+    For Each f In Forms
+        If f.hWnd <> Me.hWnd Then
+            Unload f
+        End If
+    Next
+End Sub
+
+Private Sub LookupCallsign(CSIGN$, LOCATOR, Note$, MATCHNO)
+Dim A As Integer: Dim calllength As Integer: Dim NewLocator As String: Dim NewNote As String
+
+NewNote = Note$
+NewLocator = LOCATOR
+
+' Check for presence of file
+    If Dir("CALL3.TXT") = "" Then GoTo 2 Else GoTo 3
+2   message = "The file is not where expected.  Make sure all the GJTRACKER files are in the same location as GJTRACKER.EXE!"
+    MsgBox message, , "File Not Found"
+    End
+3     'Continue
+GoTo 9600
+
+8600 If txtSearch.Text = "[[[[[" Then Let MATCHNO = MATCHNO - 1
+If txtSearch.Text = "]]]]]" Then Let MATCHNO = MATCHNO + 1
+
+Note$ = "": LOCATOR = "": UPDT = 0: EMECALL$ = ""
+
+8700 Open "CALL3.TXT" For Input As #2
+8701 For I = 1 To MATCHNO
+    Line Input #2, Dummy$
+    Next I
+COMMA = 0
+8702            For PLACE = 1 To Len(Dummy$)
+                    If Mid(Dummy$, PLACE, 1) = "," Then GoTo 8703 Else GoTo 8720
+8703                Let COMMA = COMMA + 1: On COMMA GoTo 8704, 8706
+8704                EMECALL$ = Mid(Dummy$, 1, PLACE - 1)
+                    GoTo 8719
+8706                Let N = (PLACE - STARTCHAR) '
+                    LOCATOR = RTrim(Mid(Dummy$, STARTCHAR, N))
+                    If Len(LOCATOR) < 4 Then GoTo 9730
+                    If Len(LOCATOR) = 4 Then Let LOCATOR = LOCATOR & "mm"
+                        'For X = 1 To Len(LOCATOR)
+                        '    Let A = Asc(Mid(LOCATOR, X, 1))
+                        '    If X > 4 Then GoTo 8710
+                        '    If A > 96 Then Let Mid(LOCATOR, X, 1) = Chr(A - 32) 'Capitalize letters
+                        '        GoTo 8712
+8710                    '    If A > 96 Then GoTo 8712
+                        '    Let A = (A + 32)
+                        '    Mid(LOCATOR, X, 1) = Chr(A) 'Make last two letters lower case
+8712                    'Next X
+                    Note$ = Left(RTrim(Mid(Dummy$, PLACE + 1)), 65): GoTo 8722
+8719                STARTCHAR = PLACE + 1 'Starting character position of locator
+8720            Next PLACE
+    
+8722 Close #2
+    txtSearch.Text = ""
+    If Left(Dummy$, 6) = "ZZZZZZ" Then GoTo 9725 ' Freeze browsed search at last callsign
+    If Mid(Dummy$, 1, 2) = "//" Then ' Freeze browsed search at first callsign
+        Let MATCHNO = MATCHNO + 2
+        GoTo 9725
+    End If
+    Let CSIGN$ = EMECALL$
+    txtDateCalc.Visible = True
+    txtDateCalc.Text = "Exact Browsed Callsign is at Record #" & Str(MATCHNO)
+   
+GoTo 9730
+
+
+9600  Note$ = "": LOCATOR = "": UPDT = 0: EMECALL$ = "": MATCHNO = 0: I = 0: calllength = 0
+     Let calllength = Len(RTrim(CSIGN$)): Let Wild = 15
+     For Z = 1 To calllength
+        If Mid(CSIGN$, Z, 1) = "*" Then GoTo 9601 Else GoTo 9602
+9601    Wild = Z - 1: GoTo 9700
+9602 Next Z
+
+9700 Open "CALL3.TXT" For Input As #2
+9701 COMMA = 0
+I = I + 1
+Line Input #2, Dummy$
+        If Left(Dummy$, 6) = "ZZZZZZ" Then GoTo 9722
+        If Mid(Dummy$, 1, 2) = "//" Then GoTo 9701 Else GoTo 9702
+9702            For PLACE = 1 To Len(Dummy$)
+                    If Mid(Dummy$, PLACE, 1) = "," Then GoTo 9703 Else GoTo 9720
+9703                Let COMMA = COMMA + 1: On COMMA GoTo 9704, 9706
+9704                EMECALL$ = Mid(Dummy$, 1, PLACE - 1)
+                    If Left(EMECALL$, Wild) = Left(CSIGN$, Wild) Then GoTo 9705 Else GoTo 9701
+9705                Let CSIGN$ = EMECALL$: GoTo 9719
+9706                Let N = (PLACE - STARTCHAR)
+                    LOCATOR = RTrim(Mid(Dummy$, STARTCHAR, N))
+                    If Len(LOCATOR) < 4 Then GoTo 9701
+                    If Len(LOCATOR) = 4 Then Let LOCATOR = LOCATOR & "mm"
+                    'For X = 1 To Len(LOCATOR)
+                    '    Let A = Asc(Mid(LOCATOR, X, 1))
+                    '    If X > 4 Then GoTo 9710
+                    '    If A > 96 Then Let Mid(LOCATOR, X, 1) = Chr(A - 32) 'Capitalize letters
+                    '    GoTo 9712
+9710                '    If A > 96 Then GoTo 9712
+                    '    Let A = (A + 32)
+                    '    Mid(LOCATOR, X, 1) = Chr(A) 'Make last two letters lower case
+9712                'Next X
+                    Note$ = Left(RTrim(Mid(Dummy$, PLACE + 1)), 65): GoTo 9722
+9719                STARTCHAR = PLACE + 1
+9720            Next PLACE
+9722 Close #2
+
+MATCHNO = I
+Let calllength = Len(CSIGN$)
+If Wild = calllength Then GoTo 9723 Else GoTo 9724 ' check to see if call had a wildcard * somewhere in it
+9723 MsgBox "Closest callsign found.  Please check callsign, grid locator and station information.", , "CALLSIGN SEARCH"
+GoTo 9730
+
+9724 If Left(Dummy$, 6) = "ZZZZZZ" Then GoTo 9725 Else GoTo 9726 ' Check to see if end of file was reached without finding anything
+9725 txtDateCalc.Visible = False
+txtDateCalc.Text = ""
+MsgBox "No callsign found.  Please enter new grid locator and station information manually.", , "CALLSIGN SEARCH"
+MATCHNO = 0
+frmUpdate.lblUpdate.Caption = "A new record is shown below.  Please confirm that you want to add this new record!"
+    frmUpdate.lblRecno.Visible = False
+    frmUpdate.txtRecordNumber.Visible = False
+    frmUpdate.cmdREPLACE.Caption = "ADD NEW"
+    frmUpdate.cmdDelete.Visible = False
+    
+GoTo 9730
+
+9726 If EMECALL = CSIGN$ Then GoTo 9727 Else GoTo 9730
+9727 If txtSearch.Text = "[[[[[" Or txtSearch.Text = "]]]]]" Then GoTo 8600 ' search file one way or another from existing callsign
+    txtDateCalc.Visible = True
+txtDateCalc.Text = "Exact Match Found - Record #" & Str(MATCHNO)
+9730 'Continue
+
+
+9999 ' Continue
+End Sub
+
+Private Sub cmdHELP_Click()
+
+Call HelpDisplay
+End Sub
+Private Sub TextEditor() 'Select Text editor
+' Sets the Dialog Title to Open File
+CommonDialog1.DialogTitle = "Select Text Editor"
+
+' Sets the File List box to EXE application files only
+CommonDialog1.Filter = "Text Editors (*.exe)"
+
+' Set the default files type to exe files
+CommonDialog1.FilterIndex = 1
+
+' Sets the flags - File must exist and Hide Read only
+CommonDialog1.Flags = cdlOFNFileMustExist + cdlOFNHideReadOnly
+
+' Set dialog box so an error occurs if the dialogbox is cancelled
+CommonDialog1.CancelError = True
+
+' Enables error handling to catch cancel error
+On Error Resume Next
+' display the dialog box
+CommonDialog1.ShowOpen
+editorpath = CommonDialog1.FileName
+If Err Then
+    ' This code runs if the dialog was cancelled
+    MsgBox "Dialog Cancelled"
+    Exit Sub
+End If
+' Displays a message box.
+MsgBox "You selected " & CommonDialog1.FileName
+
+End Sub
+
+Private Sub HelpDisplay()
+
+
+ ' Check for presence of pdf file
+    If Dir("GJHELP.pdf") = "" Then GoTo 5 Else GoTo 6
+5   message = "The file is not where expected.  Make sure all the GJTRACKER files are in the same location as GJTRACKER.EXE!"
+    MsgBox message, , "File Not Found"
+    End
+6     'Continue
+
+
+   Dim sFileToOpen As String
+   sFileToOpen = "GJHELP.PDF"
+   sAdobeRdrPath = txtAdobeReader.Text
+   Shell sAdobeRdrPath & " " & sFileToOpen, vbNormalFocus
+   
+
+
+End Sub
+
+
+ 
+Private Sub cmdHomeLookup_Click() '*******SUBROUTINE TO READ CALLSIGN AND LOCATOR FROM FILE CALL3.TXT ******
+ frmRT.PicMap.Cls
+ mstrLastDir = App.Path ' Set program location as the default directory for all files
+     
+        CSIGN$ = RTrim(txtCallsignHome.Text)
+        Dim N As Integer
+        Dim M As Integer
+    
+        For N = 1 To Len(CSIGN$)
+            Let M = Asc(Mid(CSIGN$, N, 1))
+            If M > 90 Then Let M = M - 32
+            Mid(CSIGN$, N, 1) = Chr(M)
+        Next N
+        Let txtCallsignHome.Text = CSIGN$
+        
+     Note$ = RTrim(txtNotesHome.Text)
+     txtNotesHome.Visible = False
+     Call LookupCallsign(CSIGN$, LOCATOR, Note$, MATCHNO)
+     txtCallsignHome.Text = CSIGN$: txtLocatorHome.Text = LOCATOR
+     
+If Left(txtDateCalc.Text, 5) = "Exact" Then GoTo 9740
+ txtNotesHome.Visible = False
+ txtNotesHome.Text = ""
+ txtDateCalc.Visible = False
+ txtDateCalc.Text = ""
+ GoTo 9800
+9740 Call cmdLocatorHomeCalc_Click
+    txtNotesHome.Visible = True
+    txtNotesHome.Text = Note$
+        
+9800 'Continue
+frmUpdate.txtOldCallsign.Text = CSIGN$
+frmUpdate.txtOldLocator.Text = LOCATOR
+frmUpdate.txtOldNotes.Text = Note$
+
+End Sub
+
+Private Sub cmdLocatorDXCalc_Click()
+
+' Calculate Locator from Lat/Lon or Lon/Lon from Locator
+LOCATOR = txtLocatorDX.Text
+LatD = Val(txtLatDegDX.Text)
+LatM = Val(txtLatMinDX.Text)
+LatS = Val(txtLatSecDX.Text)
+LatDir = cboLatDirDX.Text
+LonD = Val(txtLonDegDX.Text)
+LonM = Val(txtLonMinDX.Text)
+LonS = Val(txtLonSecDX.Text)
+LonDir = cboLonDirDX.Text
+
+Call LocatorCalc(LOCATOR, LatD, LatM, LatS, LatDir, LonD, LonM, LonS, LonDir)
+Call LocatorCalc(LOCATOR, LatD, LatM, LatS, LatDir, LonD, LonM, LonS, LonDir)
+
+txtLatDegDX.Text = Int(Val(LatD))
+txtLatMinDX.Text = Int(Val(LatM))
+txtLatSecDX.Text = Int(Val(LatS))
+cboLatDirDX.Text = LatDir
+txtLonDegDX.Text = Int(Val(LonD))
+txtLonMinDX.Text = Int(Val(LonM))
+txtLonSecDX.Text = Int(Val(LonS))
+cboLonDirDX.Text = LonDir
+txtLocatorDX.Text = LOCATOR
+
+frmUpdate.txtOldCallsign.Text = txtCallsignDX.Text
+frmUpdate.txtOldLocator.Text = txtLocatorDX.Text
+frmUpdate.txtOldNotes.Text = txtNotesDX.Text
+
+End Sub
+
+Private Sub cmdLocatorHomeCalc_Click()
+
+' Calculate Locator from Lat/Lon or Lon/Lon from Locator
+LOCATOR = txtLocatorHome.Text
+LatD = Val(txtLatDegHome.Text)
+LatM = Val(txtLatMinHome.Text)
+LatS = Val(txtLatSecHome.Text)
+LatDir = cboLatDirHome.Text
+LonD = Val(txtLonDegHome.Text)
+LonM = Val(txtLonMinHome.Text)
+LonS = Val(txtLonSecHome.Text)
+LonDir = cboLonDirHome.Text
+
+Call LocatorCalc(LOCATOR, LatD, LatM, LatS, LatDir, LonD, LonM, LonS, LonDir)
+Call LocatorCalc(LOCATOR, LatD, LatM, LatS, LatDir, LonD, LonM, LonS, LonDir)
+
+txtLatDegHome.Text = Int(Val(LatD))
+txtLatMinHome.Text = Int(Val(LatM))
+txtLatSecHome.Text = Int(Val(LatS))
+cboLatDirHome.Text = LatDir
+txtLonDegHome.Text = Int(Val(LonD))
+txtLonMinHome.Text = Int(Val(LonM))
+txtLonSecHome.Text = Int(Val(LonS))
+cboLonDirHome.Text = LonDir
+txtLocatorHome.Text = LOCATOR
+
+frmUpdate.txtOldCallsign.Text = txtCallsignHome.Text
+frmUpdate.txtOldLocator.Text = txtLocatorHome.Text
+frmUpdate.txtOldNotes.Text = txtNotesHome.Text
+
+
+End Sub
+
+Private Sub Topo(ULATD, RA, GHA, DEC, RAT, GHAT, DECT, RANGE, GAST)
+  Dim gaux As Double
+  Dim mpar As Double
+  Dim gclat As Double
+  Dim gdist As Double '  (RHO)
+    
+  '  2010-04-04 ==========Topocentric calcs for Moon RA DEC GHA ===============================
+  '  Details from http:' stjarnhimlen.se/comp/tutorial.html#9
+  '  We are going to calculate station (Topocentric) Moon RA and Declination (useful for occultations and for Polar mount Trackers)
+  
+  '  Apparent size of the equatorial radius of the Earth, as seen from the Moon.
+  ' mpar = Atn(Sin(6378.16 / RANGE) / Cos(Sqr(RANGE * RANGE - 6378.16 * 6378.16)) / RANGE)
+  mpar = FNATAN2(Sin(6378.16 / RANGE), Cos(Sqr(RANGE * RANGE - 6378.16 * 6378.16) / RANGE))
+  
+  '  Convert Astronomical Latitude into Geocentric Latitude
+  gclat = ULATD - (0.1924 * TUPI / 360) * Sin(2 * ULATD) ' Geocentric Latitude of station in radians
+  gdist = 0.99833 + 0.00167 * Cos(2 * ULATD) ' Station distance from centre of Earth in Equatorial Earth Radii ("rho")
+  
+  ' Auxiliary angle
+  
+  gaux = Atn(Tan(gclat) / Cos(GHA)) ' GHA used for HA
+  
+  '  Calculate Topocentric Moon RA
+  RAT = RA - mpar * gdist * Cos(gclat) * Sin(GHA) / Cos(DEC)
+    
+  ' Calculate Topocentric Moon Declination.
+  DECT = DEC - mpar * gdist * Sin(gclat) * Sin(gaux - DEC) / Sin(gaux) ' DEC is Moon's geocentric Dec in radians
+    
+  ' Calculate Moon topocentric GHA (L is GST)
+  GHAT = GAST / 24 * TUPI - RAT       ' GHA of Moon radians (topocentric)
+  
+  If GHAT < TUPI And GHAT < 0 Then
+    GHAT = GHAT + TUPI
+  End If
+  
+  If GHAT >= TUPI Then
+    GHAT = GHAT - TUPI
+  End If
+
+ End Sub
+
+
+
+
+
+
+Private Sub LocatorCalc(LOCATOR, LatD, LatM, LatS, LatDir, LonD, LonM, LonS, LonDir) 'Calculate locator (if there is none) or Lat and Lon (if there are none)
+Dim ZLO As Single
+Dim ZLA As Single
+Dim ZA As Single
+Dim ZB As Single
+Dim ZC As Single
+Dim ZD As Single
+
+
+LOCATOR = UCase$(LOCATOR): LCALL = Len(LOCATOR): X = 0
+    If LCALL = 0 Then GoTo 600 'Calculate Locator from Lan and Lon if there is no locator
+    If LCALL = 6 Then GoTo 540
+    If LCALL = 4 Then GoTo 533 Else GoTo 536
+533 LOCATOR = LOCATOR + "MM": GoTo 542
+536 If LCALL = 2 Then Let LOCATOR = LOCATOR + "55MM": GoTo 542
+540 X = 0.5
+542 LOCATOR = Right$(LOCATOR, 6)
+545 ULONDP = 180 - (Asc(Mid$(LOCATOR, 1, 1)) - 65) * 20 - (Val(Mid$(LOCATOR, 3, 1))) * 2 - ((Asc(Mid$(LOCATOR, 5, 1)) - 65) + X) / 12 'LONGITUDE FROM LOCATOR
+550 ULATDP = -90 + (Asc(Mid$(LOCATOR, 2, 1)) - 65) * 10 + Val(Mid$(LOCATOR, 4, 1)) + ((Asc(Mid$(LOCATOR, 6, 1)) - 65) + X) / 24 'LATITUDE FROM LOCATOR
+If ULATDP > 0 Then Let LatDir = "N" Else Let LatDir = "S"
+If ULONDP > 0 Then Let LonDir = "W" Else Let LonDir = "E"
+LatD = Int(Abs(ULATDP))
+LatM = Int((Abs(ULATDP) - Int(Abs(ULATDP))) * 60)
+LatS = Int((((Abs(ULATDP) - Int(Abs(ULATDP))) * 60) - (Int((Abs(ULATDP) - Int(Abs(ULATDP))) * 60))) * 60 + 0.5)
+LonD = Int(Abs(ULONDP))
+LonM = Int((Abs(ULONDP) - Int(Abs(ULONDP))) * 60)
+LonS = Int((((Abs(ULONDP) - Int(Abs(ULONDP))) * 60) - (Int((Abs(ULONDP) - Int(Abs(ULONDP))) * 60))) * 60 + 0.5)
+560 GoTo 700
+
+600 If (LatD) + (LatM) + (LatS) + (LonD) + (LonM) + (LonS) > 0 Then GoTo 610 Else GoTo 690
+610 'Calculate Locator from Lat and Lon
+ 
+ If (LatD - Int(LatD) > 0) Or (LonD - Int(LonD) > 0) Then GoTo 611 Else GoTo 620 'Check for decimal degrees
+611 Let ULATDP = Val(LatD) 'Calculate locator from decimal degrees and ignore minutes and seconds
+   Let ULONDP = Val(LonD)
+   GoTo 630
+    
+620 Let ULATDP = LatD + LatM / 60 + LatS / 3600 'Lat and Lon entered as deg, min and sec
+    Let ULONDP = LonD + LonM / 60 + LonS / 3600
+630 If LatDir = "S" Then Let ULATDP = -ULATDP
+    If LonDir = "E" Then Let ULONDP = -ULONDP
+    If ULATDP = 90 Then Let LOCATOR = "N POLE"
+     If ULATDP = -90 Then Let LOCATOR = "S POLE"
+     If Len(LOCATOR) > 0 Then GoTo 640
+     If ULONDP = -180 Then Let ULONDP = 180
+      ZLO = (180 - ULONDP) / 20: ZLA = (ULATDP + 90) / 10: ZA = Int(ZLO): ZB = Int(ZLA): ZLO = (ZLO - ZA) * 10: ZLA = (ZLA - ZB) * 10: ZC = Int(ZLO): ZD = Int(ZLA)
+      LOCATOR = Chr$(65 + ZA) + Chr$(65 + ZB) + Chr$(48 + ZC) + Chr$(48 + ZD) + Chr$(65 + Int((ZLO - ZC) * 24)) + Chr$(65 + Int((ZLA - ZD) * 24))
+
+640 'Continue
+GoTo 700
+690 MsgBox "Enter either Coordinates or Locator", , "Input Required"
+GoTo 999
+700 Let A = Asc(Mid(LOCATOR, 5, 1)): If A < 91 Then Mid(LOCATOR, 5, 1) = Chr$(A + 32)
+      Let A = Asc(Mid(LOCATOR, 6, 1)): If A < 91 Then Mid(LOCATOR, 6, 1) = Chr$(A + 32)
+999 'Continue
+
+End Sub
+
+Private Sub cmdRESTART_Click()
+mstrLastDir = App.Path ' Set program location as the default directory for all files
+If cmdStop.Visible = True Then GoTo 900
+txtDateCalc.Visible = False
+cmdRUN.Visible = True
+cmdStop.Visible = False
+txtDateCalc.Visible = False
+picUTCtime.Visible = False
+picUTCdate.Visible = False
+picUAZ.Visible = False
+picUEL.Visible = False
+picYAZ.Visible = False
+picYEL.Visible = False
+lblStartDate.Visible = True
+cboMonthStart.Visible = True
+cboDayStart.Visible = True
+txtYearStart.Visible = True
+txtSearch.Text = ""
+txtDateCalc.Visible = False
+txtDateCalc.Text = ""
+txtNotesHome.Visible = False
+txtNotesDX.Visible = False
+
+
+' Check for presence of file
+    If Dir("GJTRACKER.DAT") = "" Then GoTo 2 Else GoTo 3
+2   message = "The file is not where expected.  Make sure all the GJTRACKER files are in the same location as GJTRACKER.EXE!"
+    MsgBox message, , "File Not Found"
+    End
+3     'Continue
+
+' Recall Defaults
+    Open "GJTRACKER.DAT" For Input As #1
+    Input #1, YDISPLAY, YCSIGN, YLOCATOR, ylatd, YLATM, YLATS, YLatDir$, ylond, YLONM, YLONS, YLonDir$, YABOVED, YBELOWD
+    Input #1, DXDISPLAY, DXCSIGN, DXLOCATOR, DXLATD, DXLATM, DXLATS, DXLatDir$, DXLOND, DXLONM, DXLONS, DXLonDir$, DXABOVED, DXBELOWD
+    Input #1, Celestial, OBJECTNAME, CELESTIALRAHR, CELESTIALRAMIN, CELESTIALDECD, OPERATION
+    Input #1, DINC, ESCANS, PMAX, MHZ, REGION, TZ, TEXTEDITORPATH, TEMRA, UNITS, sAdobeRdrPath
+    Close #1
+' Display Defaults
+    If ESCANS = 1 Then Let cboEsc.Text = "N" Else Let cboEsc.Text = "Y"
+    txtNoise.Text = TEMRA
+    chkDisplayHome.Value = YDISPLAY
+    txtCallsignHome.Text = YCSIGN
+    txtTextEditor.Text = TEXTEDITORPATH
+    txtLatDegHome.Text = ylatd
+    txtLatMinHome.Text = YLATM
+    txtLatSecHome.Text = YLATS
+    cboLatDirHome.Text = YLatDir$
+    txtLonDegHome.Text = ylond
+    txtLonMinHome.Text = YLONM
+    txtLonSecHome.Text = YLONS
+    cboLonDirHome.Text = YLonDir$
+    txtAboveHome.Text = YABOVED
+    txtBelowHome.Text = YBELOWD
+    cboUnits.ListIndex = UNITS
+    chkDisplayDX.Value = DXDISPLAY
+    txtCallsignDX.Text = DXCSIGN
+    txtAdobeReader.Text = sAdobeRdrPath
+    txtLatDegDX.Text = DXLATD
+    txtLatMinDX.Text = DXLATM
+    txtLatSecDX.Text = DXLATS
+    cboLatDirDX.Text = DXLatDir$
+    txtLonDegDX.Text = DXLOND
+    txtLonMinDX.Text = DXLONM
+    txtLonSecDX.Text = DXLONS
+    cboLonDirDX.Text = DXLonDir$
+    txtAboveDX.Text = DXABOVED
+    txtBelowDX.Text = DXBELOWD
+    
+    cboCelestial.ListIndex = Celestial
+    txtEnterObject.Text = OBJECTNAME
+    txtCelestialRAhours.Text = CELESTIALRAHR
+    txtCelestialRAminutes.Text = CELESTIALRAMIN
+    txtCelestialDec.Text = CELESTIALDECD
+    cboOperation.ListIndex = OPERATION
+        
+    If Celestial > 1 Then GoTo 10 Else GoTo 20
+    
+10  cboCelestial.Text = cboCelestial.List(Celestial)
+    If Celestial = 6 Then txtEnterObject.Visible = True
+    txtCelestialRAhours.Visible = True
+    txtCelestialRAminutes.Visible = True
+    txtCelestialDec.Visible = True
+    lblObjectRA.Visible = True
+    lblObjectDeclination.Visible = True
+    lblObjectHours.Visible = True
+    lblObjectMin.Visible = True
+    lblObjectDegrees.Visible = True
+    If OBJECTNAME > "" Then Let txtEnterObject.Text = OBJECTNAME Else Let txtEnterObject.Text = "(Enter Name Here)"
+    txtCelestialRAhours.Text = CELESTIALRAHR
+    txtCelestialRAminutes.Text = CELESTIALRAMIN
+    txtCelestialDec.Text = CELESTIALDECD
+    
+    GoTo 30
+20 cboCelestial.ListIndex = Celestial
+    txtEnterObject.Visible = False
+    txtCelestialRAhours.Visible = False
+    txtCelestialRAminutes.Visible = False
+    txtCelestialDec.Visible = False
+     lblObjectRA.Visible = False
+     lblObjectDeclination.Visible = False
+     lblObjectHours.Visible = False
+     lblObjectMin.Visible = False
+     lblObjectDegrees.Visible = False
+     
+30  txtIncrementMinutes.Text = DINC
+    txtOutputLines.Text = PMAX
+    cboBand.Text = MHZ
+    cboRegion.Text = REGION
+    txtTimeDif.Text = TZ
+    
+    txtLocatorHome.Text = YLOCATOR
+    txtLocatorDX.Text = DXLOCATOR
+    If cmdRUN.Visible = False Then cmdRUN.Visible = True
+    If cmdStop.Visible = True Then cmdStop.Visible = False
+     
+' Set Dates
+    cboMonthStart.ListIndex = MONTH(Date) - 1
+    cboDayStart.ListIndex = Day(Date) - 1
+    txtYearStart = Year(Date)
+
+    cboMonthEnd.ListIndex = MONTH(Date) - 1
+    cboDayEnd.ListIndex = Day(Date) - 1
+    txtYearEnd = Year(Date)
+    
+    cboMonthStart.SetFocus
+    txtNotesHome.Visible = False
+    txtNotesDX.Visible = False
+
+900 ' Continue
+End Sub
+
+Private Sub cmdRUN_Click() '*****************************MAIN PROGRAM LOOP*************************************
+txtStop = "RUN"
+Call cboDayEnd_Click
+
+If Val(cboOperation.ListIndex) = 1 Then Let TIMERON = 1 Else Let TIMERON = 0 ' turn on autorun if in Real Time mode
+' Try to light up the Real-Time window only once per run
+If TIMERON = 1 And RT = 1 Then frmRT.Show
+If TIMERON = 1 And RT = 1 Then Let frmRT.lblCelestial.Caption = cboCelestial.Text
+
+cmdRUN.Visible = False
+cmdStop.Visible = True
+SCRN = 1
+ANS9 = "N"
+Dim MINUTES As Single
+Dim SECONDS As Single
+Dim latp As String
+Dim lonp As String
+Dim LatDir As String
+Dim LonDir As String
+Dim ULATDP As Single
+Dim ULONDP As Single
+Dim ULatDir As String
+Dim UCSIGN As String
+Dim ULOCATOR As String
+Dim ULonDir As String
+Dim UNOTE As String
+Dim YCSIGN As String
+Dim YLOCATOR As String
+Dim YLatDir As String
+Dim YNOTE As String
+Dim YDISPLAY As Integer
+Dim UDISPLAY As Integer
+Dim Note As String
+Dim HEADING As Integer
+
+Dim PP(0 To 50) As String
+Dim COBJ As String
+Dim CLOC As String
+Dim CR As Single
+Dim CD As Single
+Dim PI As Double
+Dim TUPI As Double
+Dim RAD As Double
+Dim Deg As Double
+Dim DATEJ As Single
+Dim I As Integer
+Dim RA As Double
+Dim rtema(1 To 50) As Single
+Dim rtemb(1 To 50) As Single
+Dim H(1 To 50) As Single
+Dim T3 As Single
+Dim PS As String
+Dim IRAP1 As Integer
+Dim IRAP2 As Integer
+Dim T As Single
+Dim AY As Integer
+Dim AM As Integer
+Dim SUNNO As Integer
+Dim PRINTRANGE As Single
+Dim AD As Integer
+Dim AY1 As Integer
+Dim AD1 As Integer
+Dim AM1 As Integer
+Dim MONTH As String
+Dim BJUL As Single
+Dim EJUL As Single
+Dim UTC As String
+Dim PREVDATE As Single
+Dim DayFraction As Single
+Dim B As Integer
+Dim B1 As Integer
+Dim E As Integer
+Dim DINC As Integer
+Dim AELEV As Single
+Dim UAELEV As Single
+Dim YAELEV As Single
+Dim BELEV As Single
+Dim UBELEV As Single
+Dim YBELEV As Single
+Dim POL As Single
+Dim POLA As Single
+Dim YAZ As Single
+Dim UAZ As Single
+Dim YEL As Single
+Dim UEL As Single
+Dim REGION As Integer
+Dim ELSIN As Single
+Dim ELCOS As Single
+Dim NOLINES As Integer
+Dim FIRSTTIME(0 To 2) As Single
+
+Dim dTaskID As Double
+Dim TEXTEDITORPATH As String
+Dim file As String
+Dim COLDSKY144 As Single
+Dim COLDSKY432 As Single
+Dim DBA As Single
+Dim DBR As Single
+Dim DB As Single
+Dim RANGE As Single
+Dim PRANGE As Single
+Dim TEMRA As Single
+Dim TEMRB As Single
+Dim STARNUM As Integer
+Dim UTCtime As String
+Dim UTCdate As String
+Dim LocalTime As String
+Dim LocalDate As String
+
+Dim PERSON As Integer
+Dim FLAG1 As Single
+Dim FLAG6 As Single
+Dim DLON As Double
+Dim DLAT As Double
+Dim DEC1 As Double
+Dim DEC2 As Double
+Dim RHO As Double
+Dim PHI As Double
+
+Dim FLAG2 As Integer
+Dim FLAG3 As Integer
+Dim FLAG4 As Integer
+Dim FLAG5 As Integer
+Dim MODE As Integer
+Dim MENU As Integer
+Dim GAST As Double
+Dim NEST As Integer
+Dim RTIME As Integer
+Dim PUNITS As String
+Dim MAXLINES As Integer
+
+Dim TLAT As Single
+Dim TLON As Single
+Dim TUHA As Single
+Dim TELSIN As Single
+Dim TELCOS As Single
+Dim TEL As Single
+    
+Dim Lam As Integer
+Dim Lad As Integer
+Dim Lay As Integer
+Dim LMONTH As String
+
+
+
+
+   
+'Input startup information from the input screen
+    MaxDegradation = Val(txtMaxDegradation.Text)
+    
+    AM = Val(cboMonthStart.ListIndex + 1)
+    AD = Val(cboDayStart.ListIndex + 1)
+    AY = Val(txtYearStart.Text)
+    EM = Val(cboMonthEnd.ListIndex + 1)
+    ED = Val(cboDayEnd.ListIndex + 1)
+    EY = Val(txtYearEnd.Text)
+    AY1 = AY: AM1 = AM: AD1 = AD
+    YDISPLAY = Val(chkDisplayDX.Value)
+    UDISPLAY = Val(chkDisplayHome.Value)
+
+    UNITS = cboUnits.ListIndex: If UNITS = 0 Then Let PUNITS = "KM" Else Let PUNITS = "MI"
+   
+    UCSIGN = txtCallsignHome.Text
+    ULOCATOR = txtLocatorHome.Text
+    ULATD = txtLatDegHome.Text
+    ULATM = txtLatMinHome.Text
+    ULATS = txtLatSecHome.Text
+    ULatDir$ = cboLatDirHome.Text
+    ulond = txtLonDegHome.Text
+    ULONM = txtLonMinHome.Text
+    ULONS = txtLonSecHome.Text
+    ULonDir$ = cboLonDirHome.Text
+    UAELEVP = Val(txtAboveHome.Text)
+    UBELEVP = Val(txtBelowHome.Text)
+    UNOTE = txtNotesHome.Text
+    
+    
+    YCSIGN = txtCallsignDX.Text
+    YLOCATOR = txtLocatorDX.Text
+    ylatd = txtLatDegDX.Text
+    YLATM = txtLatMinDX.Text
+    YLATS = txtLatSecDX.Text
+    YLatDir$ = cboLatDirDX.Text
+    ylond = txtLonDegDX.Text
+    YLONM = txtLonMinDX.Text
+    YLONS = txtLonSecDX.Text
+    YLonDir$ = cboLonDirDX.Text
+    YAELEVP = Val(txtAboveDX.Text)
+    YBELEVP = Val(txtBelowDX.Text)
+    YNOTE = txtNotesDX.Text
+    
+    
+    Celestial = cboCelestial.ListIndex
+    OBJECTNAME = txtEnterObject.Text
+    CELESTIALRAHR = txtCelestialRAhours.Text
+    CELESTIALRAMIN = txtCelestialRAminutes.Text
+    CELESTIALDECD = txtCelestialDec.Text
+    OPERATION = cboOperation.ListIndex
+    TEMRA = Val(txtNoise.Text)
+    DINC = Val(txtIncrementMinutes.Text)
+    PMAX = Val(txtOutputLines.Text)
+    MHZ = cboBand.Text
+    REGION = Val(cboRegion.Text)
+    TZ = Val(txtTimeDif.Text)
+    MODE = cboOperation.ListIndex + 1 'set the operating mode - 1 is planning, 2 is real time tracking
+    Let MENU = cboCelestial.ListIndex + 1 ' Menu=1 is for the moon, 2 is for celestial objects
+    If MENU > 2 Then Let MENU = 2
+    TEXTEDITORPATH = txtTextEditor.Text
+        If TEXTEDITORPATH = "" Then Let TEXTEDITORPATH = "C:\WINDOWS\notepad.exe"
+    sAdobeRdrPath = txtAdobeReader.Text
+        If sAdobeRdrPath = "" Then Let sAdobeRdrPath = "C:\Program Files\Adobe\Reader 8.0\Reader\AcroRd32.exe"
+    NEST = 0 ' No estimates between calculations
+    B1 = 0      ' beginning UTC printout time
+    E = 2400 ' ending UTC printout time
+    PI = 3.141592656
+    TUPI = 2 * PI
+    RAD = TUPI / 360
+    Deg = 360 / TUPI
+    RTIME = 0
+    
+'Assign values to the input dates
+      
+    BJUL = FNJULIAN(AY, AM, AD) ' Starting Julian Date
+    EJUL = FNJULIAN(EY, EM, ED) ' Ending Julian Date
+   
+'Determine home coordinates
+    If ULatDir$ = "N" Then Let NORTH = 1 Else Let NORTH = -1
+    ULATDP = Val(txtLatDegHome.Text) * Sgn(NORTH) + Sgn(NORTH) * Val(txtLatMinHome.Text) / 60 + Sgn(NORTH) * Val(txtLatSecHome.Text) / 3600
+    If ULonDir$ = "W" Then Let WEST = 1 Else Let WEST = -1
+    ULONDP = Val(txtLonDegHome.Text) * Sgn(WEST) + Sgn(WEST) * Val(txtLonMinHome.Text) / 60 + Sgn(WEST) * Val(txtLonSecHome.Text) / 3600
+
+'Determine home Region for data display
+     If ULONDP > -80 And ULONDP <= 40 Then Let REGION = 1: If ULONDP > 40 And ULONDP <= 160 Then Let REGION = 2
+     If ULONDP > 160 Or ULONDP <= -80 Then Let REGION = 3
+    'cboRegion.ListIndex = Region + 1
+
+'Determine DX station coordinates
+    If YLatDir$ = "N" Then Let NORTH = 1 Else Let NORTH = -1
+    YLATDP = Val(txtLatDegDX.Text) * Sgn(NORTH) + Sgn(NORTH) * Val(txtLatMinDX.Text) / 60 + Sgn(NORTH) * Val(txtLatSecDX.Text) / 3600
+    If YLonDir$ = "W" Then Let WEST = 1 Else Let WEST = -1
+    YLONDP = Val(txtLonDegDX.Text) * Sgn(WEST) + Sgn(WEST) * Val(txtLonMinDX.Text) / 60 + Sgn(WEST) * Val(txtLonSecDX.Text) / 3600
+
+'Convert coodinates to radians
+    ULATD = ULATDP * RAD: ulond = ULONDP * RAD 'Home coordinates
+    ylatd = YLATDP * RAD: ylond = YLONDP * RAD 'DX station coordinates
+    UBELEV = UBELEVP * RAD ' Home station upper elevation
+    UAELEV = UAELEVP * RAD ' Home station lower elevation
+    YBELEV = YBELEVP * RAD ' DX station upper elevation
+    YAELEV = YAELEVP * RAD ' DX station lower elevation
+
+' LOAD SKY TEMP DAT
+    Open "GJSKYTEMP.DAT" For Input As #4
+        For I = 1 To 50
+            Input #4, rahours, rtma, rtmb 'RIGHT ASCENSION,136MHZ ,400MHZ SKY TEMPS
+            rtema(I) = (rtma * 0.87) '144 MHZ SKY TEMP IN DEGREES KELVIN
+            rtemb(I) = (rtmb * 0.83) '432 MHZ SKY TEMP IN DEGREES KELVIN
+            H(I) = rahours
+        Next I
+    Close #4
+    
+' Prepare for calculation output
+    If MODE = 1 Then Open "GJTRACKER.TXT" For Output As #5
+GoSub 430
+GoTo 500
+430     '********SUBROUTINE TO DETERMINE CURRENT GMT DATE AND TIME FROM COMPUTER CLOCK**********
+     'Correct local omputer clock time for UTC
+    Let LocalTime = Format(Time, "HHMM") 'current time
+    Let LocalDate = Format(Date, "MMDDYYYY") 'current date
+    AM = Val(Left(LocalDate, 2)): AD = Val(Mid(LocalDate, 3, 2)): AY = Val(Right(LocalDate, 4)) 'local current date
+    LocalDaySD$ = DateSerial(AY, AM, AD) 'Local serial day
+    
+    Dim LocalMinutes As Integer
+    Dim TZMinutes As Integer
+    Dim UTChrs As String
+    Dim UTCmin As String
+    Dim UTCsec As String
+    Dim UTCtimemin As Integer
+    
+' Calculate current UTC from local computer clock time
+
+    LocalMinutes = Val(Left(LocalTime, 2)) * 60 + Val(Right(LocalTime, 2))
+    TZMinutes = TZ * 60
+    UTCtimemin = LocalMinutes - TZMinutes 'UTC Minutes
+    
+' Correct UTC for proper day
+    
+    
+    If UTCtimemin < 0 Then
+        Let UTCdate = DateSerial(AY, AM, AD - 1)
+        Let UTCtimemin = UTCtimemin + 1440
+        Let AD = AD - 1
+    End If
+    If UTCtimemin > 1440 Then
+        Let UTCdate = DateSerial(AY, AM, AD + 1)
+        Let UTCtimemin = UTCtimemin - 1440
+        Let AD = AD + 1
+    End If
+      UTCdate = DateSerial(AY, AM, AD) 'UTC serial day
+      UTCdate = Format(UTCdate, "MMDDYYYY")
+      PP(1) = Left(UTCdate, 2)
+      PP(2) = Mid(UTCdate, 3, 2)
+      PP(3) = Right(UTCdate, 4)
+      AM = Val(Left(UTCdate, 2)): AD = Val(Mid(UTCdate, 3, 2)): AY = Val(Right(UTCdate, 4)) 'UTC current date
+      UTCdate = Str(AM) & "/" & Str(AD) & "/" & Str(AY)
+      
+      Let UTChrs = Str(Int(UTCtimemin / 60))
+      Let UTCmin = Str(Int(UTCtimemin - (Val(UTChrs) * 60)))
+      Let UTCsec = Str(Right(Format(Time, "HHMMSS"), 2))
+      
+      UTCtime = TimeValue(UTChrs & ":" & UTCmin & ":" & UTCsec) ' Serial time string value
+      UTC = Format(UTCtime, "HHMM") ' current GMT formatted for printing
+      B = Val(UTC)
+      If MODE = 1 Then B1 = 0 Else Let B1 = B
+     If MODE = 1 Then GoTo 443
+        AY1 = AY
+        AM1 = AM
+        AD1 = AD
+443     UTCtime = Format(UTCtime, "HH:MM:SS")
+      
+445 Return
+
+    
+450  '***********SUBROUTINE TO FORMAT COORDINATES FOR PRINTING***************
+    PS = "": PS = "    " + Chr$(176) + "   " + Chr$(39) + "   " + Chr$(34) + " "
+    Mid(PS, 1) = Left(Str(Int(Abs(X))), 4): MINUTES = Int((Abs(X) - Int(Abs(X))) * 60 + 0.0083)
+    Mid(PS, 6) = Left(Str(MINUTES), 3): SECONDS = Int(((Abs(X) - Int(Abs(X))) * 60 - MINUTES) * 60 + 0.5)
+    Mid(PS, 10) = Left(Str(SECONDS), 3): If X >= 0 Then GoTo 467
+     LatDir$ = "S": LonDir$ = "E": GoTo 470
+467  LatDir$ = "N": LonDir$ = "W"
+470 Return
+
+
+500 ' Preapare for Real Time mode
+    If MODE = 2 Then
+        If MENU = 1 Then frmRT.lblDegredation.Visible = True Else frmRT.lblDegredation.Visible = False
+        If MENU = 1 Then frmRT.picdB.Visible = True Else frmRT.picdB.Visible = False
+        
+
+            If UDISPLAY = 1 And chkDisplayHome = 1 Then
+                frmRT.lblCallsignHome.Visible = True
+                frmRT.lblUAZ.Visible = True
+                frmRT.lblUEL.Visible = True
+                frmRT.lblCallsignHome.Caption = txtCallsignHome.Text
+                Else
+                frmRT.lblCallsignHome.Visible = False
+                frmRT.lblUAZ.Visible = False
+                frmRT.lblUEL.Visible = False
+                frmRT.lblCallsignHome.Caption = ""
+                
+            End If
+            If YDISPLAY = 1 And chkDisplayDX = 1 Then
+                frmRT.lblCallsignDX.Visible = True
+                frmRT.lblYAZ.Visible = True
+                frmRT.lblYEL.Visible = True
+                frmRT.lblCallsignDX.Caption = txtCallsignDX.Text
+                Else
+                frmRT.lblCallsignDX.Visible = False
+                frmRT.lblYAZ.Visible = False
+                frmRT.lblYEL.Visible = False
+                frmRT.lblCallsignDX.Caption = ""
+            End If
+        
+    
+            If (UDISPLAY + YDISPLAY > 1) And (MENU = 1) Then
+                frmRT.lblPolDeg.Visible = True
+                frmRT.lblPol.Visible = True
+                Else
+                frmRT.lblPol.Visible = False
+                frmRT.lblPolDeg.Visible = False
+                
+            End If
+            
+            If UDISPLAY + YDISPLAY = 0 Then
+                frmRT.lblStation.Visible = False
+                frmRT.lblAZ.Visible = False
+                frmRT.lblEL.Visible = False
+                Else
+                frmRT.lblStation.Visible = True
+                frmRT.lblAZ.Visible = True
+                frmRT.lblEL.Visible = True
+                
+             End If
+             
+    End If
+    
+510 ' set up station information for program
+511 If UDISPLAY = 1 Then GoTo 512 Else GoTo 520 ' setup program to printout data for home station
+512 Let LOCATOR = ULOCATOR
+    Let CSIGN = UCSIGN
+    Let X = ULATDP: GoSub 450
+    latp = PS & LatDir$
+    Let X = ULONDP: GoSub 450
+    lonp = PS & LonDir$
+    Let Note = UNOTE
+    lon = ulond: LAT = ULATD 'Home station lat and lon in radians
+    BELEV = UBELEV ' Home station upper elevation
+    AELEV = UAELEV ' Home station lower elevation
+
+520 If YDISPLAY = 1 Then GoTo 522 Else GoTo 530 ' setup program to printout data for DX station
+522 Let LOCATOR = YLOCATOR
+    Let CSIGN = YCSIGN
+    Let X = YLATDP: GoSub 450
+    latp = PS & LatDir$
+    Let X = YLONDP: GoSub 450
+    lonp = PS & LonDir$
+    Let Note = YNOTE
+    lon = ylond: LAT = ylatd 'DX station coordinates in radians
+    BELEV = YBELEV ' DX station upper elevation
+    AELEV = YAELEV ' DX station lower elevation
+
+530 If UDISPLAY + YDISPLAY > 1 Then Let ANS9 = "Y" Else Let ANS9 = "N" 'If Y print out info for both locations
+    I = 0: SUNNO = 0
+
+708 If MENU = 1 Then GoTo 1220
+
+710 Let I = cboCelestial.ListIndex + 1
+    COBJ = cboCelestial.Text
+    CLOC = txtCelestialRAhours.Text & " H " & txtCelestialRAminutes.Text & " M, " & txtCelestialDec.Text & Chr$(176)
+    CR = (Val(txtCelestialRAhours.Text) + Val(txtCelestialRAminutes.Text) / 60) 'RA in hours
+    CR = CR * TUPI / 24 ' RA in Radians
+    CD = Val(txtCelestialDec.Text) 'Declination in degrees
+    CD = CD * TUPI / 360 'Declination in radians
+    
+    If COBJ = "Sun" Then Let SUNNO = 1 Else Let SUNNO = 0
+    If COBJ = "Sun" Then Let CLOC = ""
+    
+805 FLAG5 = 1 ' SKIP EARTH CORRECTION FACTORS WHEN CALCULATING ELEVATION
+NOLINES = 0
+1220 '*********************END OF DATA INPUT SECTION***************************
+
+1245 DX = Sqr(Sin((ULATD - ylatd) / 2) * Sin((ULATD - ylatd) / 2) + Cos(ULATD) * Cos(ylatd) * Sin((ulond - ylond) / 2) * Sin((ulond - ylond) / 2)): DX = 2 * FNATAN2(DX, Sqr(1 - DX * DX)) * Deg * 111.12: DX = Int(DX * 10 + 0.5) / 10 'TERRESTIAL DISTANCE IN KM
+1257 Let SCRN = 1  'Output selection for printing
+1268 FLAG3 = 0 'Don't restrict printout to any particular times
+1270 MPOS = -1 'NO CALCULATIONS DONE YET
+FLAG2 = 0
+FLAG1 = 2
+
+1280 FLAG4 = 0 'NO SETTING HORIZON WINDOW TIMES CALCULATED YET
+     On MODE GoTo 1291, 1281
+1281 GoSub 430 'SET STARTING TIME AND DATE EQUAL TO CURRENT COMPUTER TIME IF IN REAL TIME MODE
+1291 BJUL = FNJULIAN(AY1, AM1, AD1): PREVDATE = BJUL
+1293 If cboCelestial.ListIndex > 0 Then GoTo 1300 ' only calculate past moon positions if tracking moon
+1295 DATEJ = BJUL - 14 'Figure out how far from perigee current day is
+1296 For I = 1 To 13
+    DATEJ = DATEJ + 1
+1298 GoSub 3800
+1299 Next I
+1300 DATEJ = BJUL
+    
+1301 '****************START OF MAIN CALCULATING LOOP**********************
+     'CALCULATE DAY OF THE WEEK
+
+1302 If txtStop.Text = "STOP" Then GoTo 9900
+     If MODE = 1 Then GoTo 1313 ' Skip below section if in Plannning mode.
+     MPOS = -1 'no calculations done yet
+     FLAG1 = 2 'NO CALCULATIONS DONE YET
+     FLAG2 = 0 ' do not do estimates - time for a real calculation
+     FLAG3 = 0 ' no moonrise times calculated yet - calculate all times
+     FLAG4 = 0 ' no setting horizon window times calculated yet - calculate all times
+     
+1303 GoSub 430 ' determine current time
+
+1313 If MENU = 1 Then GoSub 3800 'CALCULATE MOON DISTANCE AND PATH LOSS
+1315 If MENU = 1 Then GoTo 1321 Else GoTo 1317 'CALCULATE THIS DAY
+1317 STARNUM = 1
+    T3 = (DATEJ - 35735) 'set constants for stars
+    A = 0.0657098232 * T3
+    If MODE = 1 Then B = 0
+    FLAG1 = 2
+    FLAG2 = NEST
+    FLAG4 = 0
+1319 GoTo 1420
+1320 MPOS = -1
+    FLAG1 = 2 ' No calculations done yet
+    FLAG4 = 0 'No setting horizon window times calculated yet - calculate all times
+    GoTo 2580
+
+1321 DayFraction = 0 ' set constants for moon
+     GoSub 3700 'CALCULATE SUN POSITION AT ZERO HRS UTC
+     T3 = (DATEJ - 35735)
+     A = 0.0657098232 * T3
+     FLAG1 = 2 'NO CALCULATIONS DONE YET
+If MODE = 1 Then
+    Let B = 0
+    Let B1 = 0
+End If
+
+1330 If MPOS < 1 Then GoTo 1400 'moon has not risen yet
+1340 If B1 > RTIME Then GoTo 1390
+1350 B = RTIME
+1360 FLAG2 = NEST '# of estimated positions between calculations
+1370 MPOS = 0 'MOON ABOUT TO RISE-PREPARE TO RESET RTIME WHEN IT RISES
+1380 GoTo 1410
+1390 MPOS = 0
+1400  B = B1 'time starts at 0000 hours
+1410 If FLAG4 = 3 Then GoTo 1411 Else GoTo 1420 'check to see if any moonset times have been calculated yet
+1411 B = STIME
+1412 FLAG2 = NEST
+1413 FLAG4 = 1 'READY TO RESET STIME WHEN MOON COMES DOWN INTO HORIZON WINDOW
+1414 If B1 > STIME Then Let B = B1 ' start watching for moonset
+1420 DIF1 = B - Int(B / 100 + 0.5) * 100 + Int(B / 100 + 0.5) * 60 - (E - Int(E / 100 + 0.5) * 100 + Int(E / 100 + 0.5) * 60)
+1430 If DIF1 > 0 Then GoTo 1440 Else GoTo 1470
+1440 If DIF1 < DINC Then GoTo 1450
+1445 GoTo 2580
+1450 B = E
+1470 T = (B - Int(B / 100) * 100) / 1440 + Int(B / 100) / 24 'FRACTION OF THE DAY
+1475 SUNRA = SUNRAS + T * 0.0186625 'ESTIMATE RIGHT ASCENSION OF THE SUN
+1476 If SUNRA > TUPI Then Let SUNRA = SUNRA - TUPI
+1477 If SUNRA < 0 Then Let SUNRA = SUNRA + TUPI
+1480 If FLAG1 < 2 Then GoTo 1490 Else GoTo 1530 'check to see if any calculations have been done yet
+1490 If FLAG2 < NEST Then GoTo 1500 Else GoTo 1530 'do estimates if required
+GoTo 1530 ' do full calculations
+1500 FLAG2 = FLAG2 + 1
+1505 EST = " "
+1510 GAST = GAST + 0.0167123 * DINC 'ESTIMATE GREENWICH APPARENT SIDEREAL TIME
+1515 RA = RA + DINC * 0.00016 'ESTIMATE LUNAR RIGHT ASCENSION
+1516 If RA > TUPI Then Let RA = RA - TUPI
+1517 If RA < 0 Then Let RA = RA + TUPI
+1520 GoTo 1745
+1525 '*********CALCULATION OF LATITUDE AND LONGITUDE OF THE MOON***********
+1530 FLAG2 = 0
+1535 'EST = Chr$(250) 'PRINT OUT DOT FOR ESTIMATED CALCS
+1536 If cboCelestial.ListIndex = 0 Then GoTo 1540 'Calculate Moon position
+1537 If cboCelestial.ListIndex = 1 Then GoTo 1538 Else GoTo 1745 'Printout values for the sun
+1538  DayFraction = T
+     GoSub 3700
+1539 GoTo 1745
+1540 GoSub 4060 ' set constants for tracking algorithms for moon RA and DEC
+1600  DLON = 22640 * Sin(D2) - 4586 * Sin(D2 - 2 * D4) + 2370 * Sin(2 * D4) + 769 * Sin(2 * D2) - 668 * Sin(D8) - 412 * Sin(2 * D3) - 212 * Sin(2 * D2 - 2 * D4) - 206 * Sin(D2 - 2 * D4 + D8) + 192 * Sin(D2 + 2 * D4)
+1601  DLON = DLON + 165 * Sin(2 * D4 - D8) + 148 * Sin(D2 - D8) - 125 * Sin(D4) - 110 * Sin(D2 + D8) - 55 * Sin(2 * D3 - 2 * D4) - 45 * Sin(D2 + 2 * D3) + 40 * Sin(D2 - 2 * D3) - 38 * Sin(D2 - 4 * D4) + 36 * Sin(3 * D2): DLON = DLON - 31 * Sin(2 * D2 - 4 * D4) + 28 * Sin(D2 - 2 * D4 - D8) - 24 * Sin(2 * D4 + D8) + 19 * Sin(D2 - D4) + 18 * Sin(D4 + D8)
+1602  DLON = DLON + 15 * Sin(D2 + 2 * D4 - D8) + 14 * Sin(2 * D2 + 2 * D4) + 14 * Sin(4 * D4) - 13 * Sin(3 * D2 - 2 * D4)
+1603  DLON = DLON - 11 * Sin(D2 + 16 * D7 - 18 * D12) + 10 * Sin(2 * D2 - D8) + 9 * Sin(D2 - 2 * D3 - 2 * D4) + 9 * Cos(D2 + 16 * D7 - 18 * D12) - 9 * Sin(2 * D2 - 2 * D4 + D8) - 8 * Sin(D2 + D4) + 8 * Sin(2 * D4 - 2 * D8) - 8 * Sin(2 * D2 + D8)
+1604  DLON = DLON - 7 * Sin(2 * D8) - 7 * Sin(D2 - 2 * D4 + 2 * D8) + 7 * Sin(D5) - 6 * Sin(D2 - 2 * D3 + 2 * D4) - 6 * Sin(2 * D3 + 2 * D4) - 4 * Sin(D2 - 4 * D4 + D8) + 4 * (T5 / 36525! + 1) * Cos(D2 + 16 * D7 - 18 * D12) - 4 * Sin(2 * D2 + 2 * D3)
+1606  DLON = DLON + 4 * (T5 / 36525! + 1) * Sin(D2 + 16 * D7 - 18 * D12) + 3 * Sin(D2 - 3 * D4) - 3 * Sin(D2 + 2 * D4 + D8) - 3 * Sin(2 * D2 - 4 * D4 + D8) + 3 * Sin(D2 - 2 * D8) + 3 * Sin(D2 - 2 * D4 - 2 * D8) - 2 * Sin(2 * D2 - 2 * D4 - D8)
+1607  DLON = DLON - 2 * Sin(2 * D3 - 2 * D4 + D8) + 2 * Sin(D2 + 4 * D4) + 2 * Sin(4 * D2) + 2 * Sin(4 * D4 - D8) + 2 * Sin(2 * D2 - D4)
+1609  DLON = D1 + TUPI * DLON / 1296000!
+1610  DLAT = 18461 * Sin(D3) + 1010 * Sin(D2 + D3) + 1000 * Sin(D2 - D3) - 624 * Sin(D3 - 2 * D4) - 199 * Sin(D2 - D3 - 2 * D4) - 167 * Sin(D2 + D3 - 2 * D4) + 117 * Sin(D3 + 2 * D4) + 62 * Sin(2 * D2 + D3): DLAT = DLAT + 33 * Sin(D2 - D3 + 2 * D4) + 32 * Sin(2 * D2 - D3) - 30 * Sin(D3 - 2 * D4 + D8)
+1612  DLAT = DLAT - 16 * Sin(2 * D2 + D3 - 2 * D4) + 15 * Sin(D2 + D3 + 2 * D4) + 12 * Sin(D3 - 2 * D4 - D8) - 9 * Sin(D2 - D3 - 2 * D4 + D8) - 8 * Sin(D3 + D5): DLAT = DLAT + 8 * Sin(D3 + 2 * D4 - D8) - 7 * Sin(D2 + D3 - 2 * D4 + D8) + 7 * Sin(D2 + D3 - D8) - 7 * Sin(D2 + D3 - 4 * D4) - 6 * Sin(D3 + D8)
+1613  DLAT = DLAT - 6 * Sin(3 * D3) + 6 * Sin(D2 - D3 - D8) - 5 * Sin(D3 + D4): DLAT = DLAT - 5 * Sin(D2 + D3 + D8) - 5 * Sin(D2 - D3 + D8) + 5 * Sin(D3 - D8) + 5 * Sin(D3 - D4) + 4 * Sin(3 * D2 + D3) - 4 * Sin(D3 - 4 * D4)
+1614  DLAT = DLAT - 3 * Sin(D2 - D3 - 4 * D4) + 3 * Sin(D2 - 3 * D3) - 2 * Sin(2 * D2 - D3 - 4 * D4): DLAT = DLAT - 2 * Sin(3 * D3 - 2 * D4) + 2 * Sin(2 * D2 - D3 + 2 * D4) + 2 * Sin(D2 - D3 + 2 * D4 - D8) + 2 * Sin(2 * D2 - D3 - 2 * D4) + 2 * Sin(3 * D2 - D3)
+1620  DLAT = TUPI * DLAT / 1296000!
+1630 '**************CALCULATION OF RIGHT ASCENSION AND DECLINATION**********
+1640  DEC1 = Cos(DLAT) * Sin(DLON) * 0.397821 + Sin(DLAT) * 0.917463
+1650  DEC2 = Abs(DEC1)
+1660  DEC = FNATAN2(DEC1, Sqr(1 - DEC2 * DEC2))
+1670 If ANS2 = "Y" Or FLAG3 = 1 Then GoTo 1680 Else GoTo 1690
+1680 If DEC < 0 Then GoTo 1970
+1690  RAC = Cos(DLAT) * Cos(DLON) / Cos(DEC)
+1700  RAS = (Cos(DLAT) * Sin(DLON) * 0.917463 - Sin(DLAT) * 0.397821) / Cos(DEC)
+1705  PREVRA = RA
+1710  RA = FNATAN2(RAS, RAC)
+1745 '*************CALCULATION OF GREENWICH APPARENT SIDEREAL TIME***********
+1750  GMST = 6.67170278 + (A - Int(A / 24) * 24) + 1.0027379093 * T * 24 'GREENWICH MEAN SIDEREAL TIME IN HOURS
+1755  OMEGA = (372.1133 - 0.0529539 * (T3 + T)) * RAD
+1760  OMEGA = OMEGA - Int(Sgn(OMEGA) * OMEGA / TUPI) * TUPI * Sgn(OMEGA)
+1765 If Abs(OMEGA) < PI Then Let OMEGA = OMEGA - TUPI * Sgn(OMEGA)
+1770  GAST = GMST + 0.00029 * Sin(OMEGA) 'GREENWICH APPARENT SIDEREAL TIME IN HRS.
+1775  GAST = GAST - Int(GAST / 24#) * 24#
+1776 If MENU = 1 Then GoTo 1780
+1777 If MENU = 2 And MODE = 1 Then GoTo 1778 Else GoTo 1780
+1778 If FLAG1 < 2 Then GoTo 3320 Else GoTo 3200
+1780 If RA < 0 Then Let RA = TUPI + RA
+1781 If RA > TUPI Then Let RA = RA - TUPI
+Let FLAG5 = 0 ' calculate corrected elevation for the moon
+1790 ' Check both stations elevation
+
+If MODE = 2 And UDISPLAY = 0 Then GoSub 4000
+
+
+    If UDISPLAY = 1 Then GoTo 1792 Else GoTo 1796
+1792 Let LOCATOR = ULOCATOR: PERSON = 1
+    Let CSIGN = UCSIGN
+    Let X = ULATDP: GoSub 450
+    latp = PS & LatDir$
+    Let X = ULONDP: GoSub 450
+    lonp = PS & LonDir$
+    Let Note = UNOTE
+    lon = ulond: LAT = ULATD: AELEV = UAELEV 'Home station lat and lon in radians
+    GoSub 4000 'CALCULATE ELEVATION and AZIMUTH for home station
+    UEL = EL: UAZ = AZ
+    POL = FNPOL(UAZ, UEL, ULATD)
+    If MODE = 2 Then GoTo 1796  'write data to file and also gather position for other station, even if el is negative
+    If UEL < UAELEV Then GoTo 2090 ' if elevation is below home station horizon, then skip printout for now
+    If UEL > UBELEV Then GoTo 2145 ' go to next moonrise if it is too high already
+    'If MaxDegradation = 0 Then GoTo 1796
+    'If DBA < MaxDegradation Then GoTo 1796 Else GoTo 1410 ' skip printout if Degradation is too high
+
+1796 If YDISPLAY = 1 Then GoTo 1798 Else GoTo 1800
+1798 Let LOCATOR = YLOCATOR: PERSON = 2
+    Let CSIGN = YCSIGN
+    Let X = YLATDP: GoSub 450
+    latp = PS & LatDir$
+    Let X = YLONDP: GoSub 450
+    lonp = PS & LonDir$
+    Let Note = YNOTE
+    lon = ylond: LAT = ylatd: AELEV = YAELEV 'DX station coordinates in radians
+    GoSub 4000 'CALCULATE ELEVATION and AZIMUTH for DX station
+     YEL = EL: YAZ = AZ
+     POLA = FNPOL(YAZ, YEL, ylatd)
+    If MODE = 2 Then GoTo 1800
+    If YEL < YAELEV Then GoTo 2090 ' if elevation is below DX station horizon, then skip printout for now
+    If YEL > YBELEV Then GoTo 2145 ' go to next moonrise if it is too high already
+    'If MaxDegradation = 0 Then GoTo 1800
+    'If DBA < MaxDegradation Then GoTo 1800 Else GoTo 1410 ' skip printout if Degradation is too high
+
+1800 Let POL = POL - POLA
+    If Abs(POL) >= 90 Then Let POL = POL - Sgn(POL) * 180 'CROSS POLARIZATION ANGLE
+    If MENU = 1 Then GoTo 1810 Else GoTo 1820
+
+1810  RAH = (RA / TUPI) * 24 + 0.000347222 'ROUNDS OFF HOURS TO NEAREST MINUTE  IRAP1 = Int(RAH)
+    IRAP2 = Int((RAH - IRAP1) * 60)
+    GoSub 3015 'CALCULATE SKY TEMPS AND DB INDICES
+
+1820   If MODE = 2 Then GoTo 1841 Else GoTo 1848
+1841 'Real Time Mode
+
+1842    'picUTCtime.Cls: picUTCtime.Print "  " & UTCtime ' In Real Time mode
+        'picUTCdate.Cls: picUTCdate.Print Format(UTCdate, "dddd  mmm dd,yyyy")
+        'picPol.Cls: picPol.Print Format(FormatNumber(POL, 0), "@@@") & Chr$(176)
+        frmRT.lblTime.Caption = UTCtime
+            If AM1 = 1 Then Let MONTH = "JAN"
+            If AM1 = 2 Then Let MONTH = "FEB"
+            If AM1 = 3 Then Let MONTH = "MAR"
+            If AM1 = 4 Then Let MONTH = "APR"
+            If AM1 = 5 Then Let MONTH = "MAY"
+            If AM1 = 6 Then Let MONTH = "JUN"
+            If AM1 = 7 Then Let MONTH = "JUL"
+            If AM1 = 8 Then Let MONTH = "AUG"
+            If AM1 = 9 Then Let MONTH = "SEP"
+            If AM1 = 10 Then Let MONTH = "OCT"
+            If AM1 = 11 Then Let MONTH = "NOV"
+            If AM1 = 12 Then Let MONTH = "DEC"
+        frmRT.lblDate.Caption = MONTH & " " & AD1 & ", " & AY1
+        frmRT.lblPolDeg.Caption = Format(FormatNumber(POL, 0), "@@@") & Chr$(176)
+        
+        If UDISPLAY = 1 Then GoTo 1843 Else GoTo 1844
+1843        If UEL < 0 Then Let frmRT.lblUEL.ForeColor = &HFF& Else Let frmRT.lblUEL.ForeColor = &H80000012  'red else black
+            frmRT.lblUAZ.Caption = Format(FormatNumber(FNA(UAZ), 1), "@@@@@")
+            frmRT.lblUEL.Caption = Format(FormatNumber(FNA(UEL), 1), "@@@@@")
+
+1844    If YDISPLAY = 1 Then GoTo 1845 Else GoTo 1846
+1845        If YEL < 0 Then Let frmRT.lblYEL.ForeColor = &HFF& Else Let frmRT.lblYEL.ForeColor = &H80000012  'red else black
+            frmRT.lblYEL.Caption = Format(FormatNumber(FNA(YEL), 1), "@@@@@")
+            frmRT.lblYAZ.Caption = Format(FormatNumber(FNA(YAZ), 1), "@@@@@")
+                       
+1846 If TZ <> 0 Then ' Display local computer time if it is different from UTC
+               
+          Let LocalTime = Format(Time, "HH:MM:SS") 'current time
+          Let LocalDate = Format(Date, "MMDDYYYY") 'current date
+          Lam = Val(Left(LocalDate, 2)): Lad = Val(Mid(LocalDate, 3, 2)): Lay = Val(Right(LocalDate, 4)) 'local current date
+            If Lam = 1 Then Let LMONTH = "JAN"
+            If Lam = 2 Then Let LMONTH = "FEB"
+            If Lam = 3 Then Let LMONTH = "MAR"
+            If Lam = 4 Then Let LMONTH = "APR"
+            If Lam = 5 Then Let LMONTH = "MAY"
+            If Lam = 6 Then Let LMONTH = "JUN"
+            If Lam = 7 Then Let LMONTH = "JUL"
+            If Lam = 8 Then Let LMONTH = "AUG"
+            If Lam = 9 Then Let LMONTH = "SEP"
+            If Lam = 10 Then Let LMONTH = "OCT"
+            If Lam = 11 Then Let LMONTH = "NOV"
+            If Lam = 12 Then Let LMONTH = "DEC"
+        frmRT.lblLocalDate.Caption = LMONTH & " " & Lad & ", " & Lay
+        frmRT.lblLocalTime.Caption = LocalTime
+        frmRT.lbComputerTime.Caption = "Local Clock:"
+      Else
+         frmRT.lblLocalTime.Caption = ""
+         frmRT.lblLocalDate.Caption = ""
+         frmRT.lbComputerTime.Caption = ""
+      End If
+
+
+If MENU > 1 Then GoTo 9900
+       Let DB = FNR(DBA, 10)
+        
+        'If DB > 6 Then Let picDegdB.ForeColor = &HFF&   'Red
+        'If DB <= 6 Then Let picDegdB.ForeColor = &H80FF&      'Orange
+        'If DB <= 4 Then Let picDegdB.ForeColor = &HFFFF&       'Yellow
+        'If DB <= 2 Then Let picDegdB.ForeColor = &HFF00&   'Green
+        'picDegdB.Cls: picDegdB.Print "  "; Format(FormatNumber(DB, 1), "@@@@@@")
+        
+        If DB > 6 Then Let frmRT.picdB.ForeColor = &HFF&   'Red
+        If DB <= 6 Then Let frmRT.picdB.ForeColor = &H80FF&      'Orange
+        If DB <= 4 Then Let frmRT.picdB.ForeColor = &HFFFF&       'Yellow
+        If DB <= 2 Then Let frmRT.picdB.ForeColor = &HFF00&   'Green
+        frmRT.picdB.Cls: frmRT.picdB.Print Format(FormatNumber(-DB, 1), "@@@@@@")
+              
+
+              
+     GoTo 9900 'await next RUN command from timer
+
+1848 If MENU = 1 Then GoTo 1849 '*****************CHECK TO SEE WHAT WINDOW MOON IS IN******************
+     If FLAG1 < 2 Then GoTo 3320 Else GoTo 3200 ' calculations have been done - print out star information
+1849 MOONWINDOW = " "
+1850 If DEC < 0 Then GoTo 1854 Else GoTo 1855
+1854 If ANS2 = "Y" Then GoTo 1970 Else GoTo 1960
+1855 On REGION GoSub 4200, 4300, 4400
+1960 If FLAG3 = 0 Then GoTo 2050
+1970 If DEC > -0.1047 Then GoTo 2530 Else GoTo 2580 'CHECK NEXT INCREMENT OR DAY FOR POSITIVE DECLINATION
+1980 '**************CHECK FLAGS FOR MOONRISES AND SETS*********************
+2050 'If MODE = 2 Then GoTo 2255 ' SKIP FLAG CHECKING IF IN REAL TIME MODE
+   
+     GoTo 2255 ' skip all flag checking for now when in planning mode
+ 
+     
+     If MPOS = 0 Then GoTo 2060 Else GoTo 2140
+2060  MPOS = 1 ' MOON HAS JUST RISEN-SET RTIME
+2070  RTIME = B
+2080 GoTo 2140
+2090 If MPOS < 0 Then GoTo 2110 Else GoTo 2100
+2100 If MPOS = 0 Then GoTo 2530 Else GoTo 2130
+2110  MPOS = 0 'MOON HAS BEEN CALCULATED TO BE BELOW HORIZON-WAITING NOW TO CALCULATE FIRST RISE TIME
+2120 GoTo 2530
+2130 If RTIME > B Then GoTo 1350 Else GoTo 2580 'JUMP TO NEXT RISE TIME
+2140 'Continue
+
+       If YEL <= YBELEV And YDISPLAY = 1 Then GoTo 2142 Else GoTo 2145 'if elevation is below DX station upper limit, continue on
+2142   If UEL <= UBELEV And UDISPLAY = 1 Then GoTo 2160 'if elevation is below DX station upper limit, continue on
+
+2145 If FLAG4 = 2 Then GoTo 2151 Else GoTo 2146 'MOON UP BUT NOT IN DESIRED HORIZON WINDOW-CHECK TO SEE IF A SET TIME HAS BEEN DETERMINED
+2146 If MPOS = 1 Then Let FLAG4 = 1 'PREPARE TO SET STIME WHEN MOON COMES DOWN INTO HORIZON WINDOW
+2147 GoTo 2530
+2151  FLAG4 = 3 'READY TO JUMP AHEAD TO SETTING HORIZON
+2153 If STIME > B Then GoTo 1410 Else GoTo 2580
+2160 If MPOS = 1 And FLAG4 = 1 Then GoTo 2170 Else GoTo 2210
+2170  FLAG4 = 2 'MOON HAS RISEN ONCE AND STIME IS BEING SET
+2180  STIME = B 'TIME AT WHICH MOON COMES DOWN BELOW CHOSEN ELEVATION
+2210 ' OLD LOCATION OF CALL TO GO CALCULATE AZIMUTH OF THE MOON
+2255 '*************************CHECK FOR NEW MOON**************************
+2256  RADIF = Abs(RA - SUNRA): NEWMOON = "  "
+2257 If RADIF > PI Then Let RADIF = Abs(RADIF - TUPI)
+2258 If RADIF < 0.1134464 Then Let NEWMOON = "NM" 'SEE IF SUN IS WITHIN 6.5 degrees OF MOON
+2259 If RADIF > 3.028 Then Let NEWMOON = "      FM" 'SEE IF IT IS FULL MOON
+2270 If FLAG1 < 2 Then GoTo 2390 Else GoTo 2272
+2272 '***********************PRINT OUT MOON HEADINGS************************
+2273 If MODE = 2 Then GoTo 9900
+If MENU = 1 Then GoTo 2280 Else GoTo 3200
+2280 If MaxDegradation = 0 Then GoTo 2290
+     If DBA > MaxDegradation Then GoTo 2586 ' skip to next day if Degradation is too high
+2290 NM1 = Int(AM1)
+    NOLINES = NOLINES + 6: GoSub 5700
+2300  HEADING = 1
+    If UDISPLAY = 1 Then GoTo 2301 Else GoTo 2305
+2301 Let CSIGN = UCSIGN
+    Let X = ULATDP: GoSub 450
+    latp = PS & LatDir$
+    Let X = ULONDP: GoSub 450
+    lonp = PS & LonDir$
+    Let Note = UNOTE
+ 
+2305  If YDISPLAY = 1 Then GoTo 2306 Else GoTo 2310
+2306    Let CSIGN = YCSIGN
+    Let LOCATOR = YLOCATOR
+    Let CSIGN = YCSIGN
+    Let X = YLATDP: GoSub 450
+    latp = PS & LatDir$
+    Let X = YLONDP: GoSub 450
+    lonp = PS & LonDir$
+    Let Note = YNOTE
+
+2310  PRINTOUT = 1 'PRINTER HAS BEEN USED DURING THIS SESSION
+2312 GoSub 3500 'DETERMINE MONTH OF THE YEAR
+'Print #5,
+
+Let PRINTRANGE = RANGE
+If UNITS > 0 Then Let PUNITS = "MI" Else Let PUNITS = "KM"
+If UNITS > 0 Then
+    Let DX = DX * 3 / 5
+    Let PRINTRANGE = PRINTRANGE * 3 / 5
+End If
+
+2320 Print #5, MO; " "; Format(AD1, "##"); ","; Format(Int(AY1), "####"); Tab(15); latp; Tab(37); "MOON POSITION"; Tab(61); "RANGE:  "; Format(PRINTRANGE, " ###,###"); " "; PUNITS
+2330 Print #5, WKDAY(DATEJ); Tab(15); lonp; Tab(32); "(PREPARED BY GJTRACKER)"; Tab(61); GEE; Tab(63); Format(PDAYS, "+## DAYS");
+2340 Print #5, Tab(71); Format(FNR(SEMIDIA, 100), " ##.##"); "'SD"
+2350 Print #5, "JD:"; (DATEJ + 2397547.5);
+    If Note = "" Then GoTo 2352
+    Print #5, " "; CSIGN; " NOTES: "; " "; Left(Note, 51);
+2352 Print #5,
+If ANS9 = "Y" Then GoTo 2359 Else GoTo 2370
+2359 Print #5, "DX:";
+    Print #5, Format(DX, " ##,###.#"); " "; PUNITS; Tab(18); "("; CSIGN; " in "; LOCATOR; ")";
+2362 Print #5, Tab(41); "("; UCSIGN; " in "; ULOCATOR; ")";
+Print #5, Tab(61); "APPROX"; Tab(69);
+Print #5, Format(MHZ, "####"); Tab(74); "MHZ DB"
+
+2363 Print #5, "UTC"; Tab(8); "NOTES"; Tab(17); "W AZIMUTH"; Tab(29); "ELEV"; Tab(37); "DEC"; Tab(43); "AZIMUTH"; Tab(51); "ELEV"; Tab(56); "POL"; Tab(61); "SKY "; Chr$(176); "K  DEGRADATION"
+2365 Print #5, "===="; Tab(7); "========"; Tab(17); "= ======="; Tab(28); "======"; Tab(36); "====="; Tab(43); "======="; Tab(51); "===="; Tab(56); "==="; Tab(61); "======  ==========="
+2369 GoTo 2385
+2370 Print #5, Tab(18); "("; CSIGN; " in "; LOCATOR; ")"; Tab(61); "APPROX"; Tab(69);
+Print #5, Format(MHZ, "####"); Tab(74); "MHZ DB"
+
+2375 Print #5, "UTC"; Tab(8); "NOTES"; Tab(17); "W AZIMUTH"; Tab(29); "ELEV"; Tab(38); "GHA"; Tab(46); "DEC"; Tab(52); "RT ASCN"; Tab(61); "SKY "; Chr$(176); "K  DEGRADATION"
+2380 Print #5, "===="; Tab(7); "========"; Tab(17); "= ======="; Tab(28); "======"; Tab(36); " ===== "; Tab(45); "====="; Tab(52); "======="; Tab(61); "======  ==========="
+2385  'Continue
+2390 '**********************PRINT OUT MOON DATA*******************************
+
+2391 If NEWMOON = "NM" And SCRN = 2 Then Let NEWMOON = "NEW MOON"
+2395 If ((T - FLAG1) < (1.5 * DINC) / 1440) Then GoTo 2410
+2400 If SCRN = 1 And FLAG < 2 Then GoTo 2409 'LINE FEED IF MOON HAS SET PREVIOUSLY
+2401 'Print #5,
+2402 'GoSub 5700
+2405 GoTo 2410
+2409  NOLINES = NOLINES + 1: GoSub 5700: Print #5,
+2410  NB = Int(B * 10 + 0.5) / 10
+2412 GoSub 3100
+2460  RAH = (RA / TUPI) * 24 + 0.000347222 'ROUNDS OFF HOURS TO NEAREST MINUTE
+2470  IRAP1 = Int(RAH)
+2480  IRAP2 = Int((RAH - IRAP1) * 60)
+2485 'GoSub 3015 'CALCULATE SKY TEMPS AND DB INDICES
+2488 'If NOLINES > PMAX Then GoTo 2489 Else GoTo 2491
+2489 'If HEADING = 1 Then Print #5,
+2490 'GoTo 2272
+2491  NOLINES = NOLINES + 1: GoSub 5700
+2492 If ANS9 = "N" Then GoTo 2493 Else GoTo 2495 'Check the printing position for the first station columns
+2493 If UDISPLAY = 1 Then GoTo 2494 Else GoTo 2495
+2494 EL = UEL: AZ = UAZ ' position for home station
+    If UEL > UBELEV Then GoTo 2145
+    If UEL >= UAELEV Then GoTo 2507 Else GoTo 2521
+2495 If YDISPLAY = 1 Then GoTo 2496
+2496  EL = YEL: AZ = YAZ 'position for DX station
+    If YEL > YBELEV Then GoTo 2145
+    If YEL < YAELEV Then GoTo 2521
+    If ANS9 = "N" Then GoTo 2507
+2497 ' print first set of columns
+Call Topo(ULATD, RA, GHA, DEC, RAT, GHAT, DECT, RANGE, GAST)
+Print #5, UTC; Tab(7); NEWMOON; Tab(17); MOONWINDOW; EST;
+Print #5, Tab(20); Format(FormatNumber(FNA(AZ), 1), "@@@@@"); Tab(28); Format(FormatNumber(FNA(EL), 1), "@@@@@"); Tab(36); Format(FormatNumber(FNA(DECT), 1), "@@@@@");
+      
+2500 Print #5, "  ";
+2501 'print the az and el for home station when two stations are being printed
+EL = UEL: AZ = UAZ ' position for home station
+Print #5, Tab(44); Format(FormatNumber(FNA(AZ), 1), "@@@@@"); Tab(50); Format(FormatNumber(FNA(EL), 1), "@@@@@"); Tab(56); Format(FormatNumber(POL, 0), "@@@");
+2504 GoTo 2513
+2505
+
+2507 'Printing data if there is only one station
+
+If UDISPLAY = 1 Then GoTo 2508 Else GoTo 2509
+2508 EL = UEL: AZ = UAZ 'Home station lat and lon in radians
+    If ANS9 = "N" Then GoTo 2511 Else GoTo 2513
+ 
+2509  If YDISPLAY = 1 Then GoTo 2510 Else GoTo 2513
+2510 EL = YEL: AZ = YAZ 'DX station coordinates in radians
+
+2511 Call Topo(ULATD, RA, GHA, DEC, RAT, GHAT, DECT, RANGE, GAST)
+   
+2512 Print #5, UTC; Tab(7); NEWMOON; Tab(17); MOONWINDOW; EST;
+Print #5, Tab(20); Format(FormatNumber(FNA(AZ), 1), "@@@@@"); Tab(28); Format(FormatNumber(FNA(EL), 1), "@@@@@"); Tab(37); Format(FormatNumber(FNA(GHAT), 1), "@@@@@"); Tab(45); Format(FormatNumber(FNA(DECT), 1), "@@@@@"); Tab(52); Format(IRAP1, "#0H"); " "; Format(IRAP2, "#0M");
+
+
+2513 'Finish printing of any of the columns, either with the sun position or the sky noise and degredation
+If NEWMOON = "NM" Or NEWMOON = "NEW MOON" Then GoTo 2514 Else GoTo 2526
+2514  MR = RA: MD = DEC: RA = SUNRA: DEC = SUNDEC: SUNNO = 1: MENU = 2: FLAG5 = 1
+GoSub 4000
+2517 If (UEL > UBELEV And UDISPLAY = 1) Or (YEL > YBELEV And YDISPLAY = 1) Then GoTo 2145
+If (UEL >= UAELEV And UDISPLAY = 1) Or (YEL >= YAELEV And YDISPLAY = 1) Then GoTo 2519 Else GoTo 2521
+
+
+2519 Print #5, Tab(61); Format(FormatNumber(FNA(AZ), 1), "@@@@@"); " AZ"; Tab(72); Format(FormatNumber(FNA(EL), 1), "@@@@@"); " EL"
+2520 GoTo 2522
+2521 Print #5, Tab(62); "SUN BELOW HORIZON"
+2522  RA = MR: DEC = MD: FLAG5 = 0: MENU = 1: SUNNO = 0: GoTo 2529
+2526 Print #5, Tab(62); Format(KTEMPA, "#####"); Tab(70); Format(FormatNumber(FNR(DBA, 10), 1), "@@@@@@")
+2529  FLAG1 = T
+2530 If MODE = 2 Then GoTo 1302
+     If DINC >= 60 Then GoTo 2531 Else GoTo 2535
+2531  B = FNR(B + 100 * Int(DINC / 60) + DINC - Int(DINC / 60) * 60, 1000)
+
+2532  GoTo 2540
+2535  B = FNR(B + DINC, 1000) ' advance to next printing increment time that day
+2540  Z = B - Int(B / 100) * 100 - 60
+2550 If Z < 0 Then GoTo 1420 Else GoTo 2560
+2560  B = Int(B / 100) * 100 + 100 + Z
+2570 GoTo 1420
+2580 If SCRN = 2 Then GoTo 2581 Else GoTo 2585
+2581  DayEnd = 1
+2582 'GoTo 5800
+2585 If SCRN = 1 And HEADING = 1 Then
+        NOLINES = NOLINES + 1: GoSub 5700
+        Print #5, ' print lines between days:
+    End If
+
+2586  HEADING = 0
+      GoSub 2790 'Advance to next day
+2590  DATEJ = FNR(DATEJ, 10)
+2610 If DATEJ - EJUL > 0.5 Then GoTo 9900 Else GoTo 1301
+2628 GoTo 9900
+
+2790 '****SUBROUTINE TO INCREMENT DAY AND CORRECT DATE FOR MONTH AND YEAR****
+2791 DayEnd = 0
+2985 If FLAG1 < 2 And DATEJ > PREVDATE Then GoTo 2986 Else GoTo 2990
+2986 FLAG1 = 2: PREVDATE = DATEJ 'REMEMBER LAST DAY OF PRINTOUT
+2990 SCRNNO = 0: DATEJ = DATEJ + 1 ' NOW ALSO INCREASE JULIAN DATE BY ONE DAY
+      Let UTCdate = DateSerial(AY1, AM1, AD1 + 1) ' increment day by one
+      UTCdate = Format(UTCdate, "MMDDYYYY") 'new corrected date
+      AM1 = Val(Left(UTCdate, 2)): AD1 = Val(Mid(UTCdate, 3, 2)): AY1 = Val(Right(UTCdate, 4)) 'UTC current date
+3014 Return
+
+3015 '********SUBROUTINE TO CALCULATE BACKGROUND SKY TEMPERATURE**********
+3016 DBR = 40 * FNL(((RANGE - PRANGE) * (T - 0.5) + RANGE) / 356410!) 'DB DEGRADATION FROM MOON DISTANCE, COMPARED TO 356410 KM GEOCENTRIC PERIGEE
+     TEMRB = TEMRA ' RECEIVER NOISE TEMPERATURE
+     
+3020 For I = 2 To 50
+3025 If H(I) > RAH Then GoTo 3050
+3030 Next I
+3050  KTEMPA = Int((rtema(I) - rtema(I - 1)) / 0.5 * (RAH - H(I - 1)) + rtema(I - 1))
+     If MHZ = 50 Then Let KTEMPA = KTEMPA * (50 / 144) ^ (-2.7) 'CORRECT FOR 50 MHZ SKY TEMP
+3070  KTEMPB = Int((rtemb(I) - rtemb(I - 1)) / 0.5 * (RAH - H(I - 1)) + rtemb(I - 1))
+     If MHZ = 1296 Then GoTo 3071 Else GoTo 3072
+3071  KTEMPB = KTEMPB - 2.7 ' CORRECT FOR 1296 MHZ SKY TEMP
+      KTEMPB = KTEMPB / ((432 / 1296) ^ (-2.8)) + 2.7
+3072  COLDSKY144 = 13 * (408 / 144) ^ (2.6)
+      If MHZ = 50 Then Let COLDSKY144 = 13 * (408 / 50) ^ (2.6) 'CORRECT FOR 50 MHZ SKY TEMP
+      COLDSKY432 = 12.45
+      If MHZ = 1296 Then GoTo 3073 Else GoTo 3074
+3073  COLDSKY432 = COLDSKY432 - 2.7 ' CORRECT FOR 1296 MHZ SKY TEMP
+      COLDSKY432 = COLDSKY432 / ((432 / 1296) ^ (-2.8)) + 2.7
+3074  DBA = DBR + 10 * FNL((TEMRA + KTEMPA) / (TEMRA + COLDSKY144)) '50/144 MHZ DB DEGRADATION INDEX
+      DBB = DBR + 10 * FNL((TEMRB + KTEMPB) / (TEMRB + COLDSKY432)) '432/1296 MHZ DB DEGRADATION INDEX
+     If MHZ = 144 Or MHZ = 50 Then GoTo 3075
+     Let DBA = DBB ' ONLY DEGRADATION INDEX IS NOW CALLED DBA
+     Let KTEMPA = KTEMPB ' ONLY SKY TEMP PRINTED OUT IS NOW KTEMPA
+3075 Return
+
+3100 '*************SUBROUTINE TO FORMAT UTC FOR PRINTING********************
+      hr = ""
+     If NB < 1000 Then Let hr = "0": If NB < 100 Then Let hr = "00": If NB < 10 Then Let hr = "000"
+      UTC = hr + Right(Str(NB), (Len(Str(NB)) - 1))
+     Return
+3200 '**************PRINT OUT HEADINGS FOR STARS******************************
+
+3205
+3210
+3212  HEADING = 1
+NOLINES = 6 + NOLINES: GoSub 5700
+3214
+3220  NM1 = Int(AM1)
+3230 GoSub 3500 'DETERMINE MONTH OF THE YEAR
+UDISPLAY = Val(chkDisplayHome.Value)
+YDISPLAY = Val(chkDisplayDX.Value)
+If UDISPLAY = 1 And YDISPLAY = 1 Then Let ANS9 = "Y"
+If ANS9 = "Y" Then GoTo 3234 Else GoTo 3235
+3234 MsgBox "Positions for Celstial Objects are calculated only for one location when in Planning Mode.  Please select one station for printout.", , "Display Selection"
+GoTo 9998
+3235 If UDISPLAY = 1 Then GoTo 3236 Else GoTo 3238
+3236   Let CSIGN = UCSIGN: Note = UNOTE: LAT = ULATDP: lon = ULONDP: LOCATOR = ULOCATOR
+       
+3238 If YDISPLAY = 1 Then GoTo 3239 Else GoTo 3241
+3239 Let CSIGN = YCSIGN: Note = UNOTE: LAT = YLATDP: lon = YLONDP: LOCATOR = YLOCATOR
+     
+3241  X = LAT
+3242 GoSub 450
+'Print #5,
+3250 Print #5, MO; Format(Int(AD1), "@@@"); ","; Format(Int(AY1), "@@@@@"); Tab(25); "POSITION OF "; COBJ; " FROM "; CSIGN; Tab(65); PS; LatDir$
+3251  X = lon
+3252 GoSub 450
+If SUNNO = 1 Then Let CLOC = ""
+3260 Print #5, WKDAY(DATEJ); Tab(30); CLOC; Tab(65); PS; LonDir$
+3270 Print #5, "JD:"; DATEJ + 2397547.5; Tab(68); "(QTH:"; LOCATOR; ")"
+3280 Print #5,
+If SUNNO = 1 Then GoTo 3286 Else GoTo 3290
+
+3286 Print #5, "UTC";
+     Print #5, Tab(7); " AZIMUTH    ELEV  "; "   DEC    RT ASCN"
+     Print #5, "===="; Tab(7); " =======    ====  "; "  =====   ======="
+     GoTo 3310
+3290 Print #5, "UTC";
+     Print #5, Tab(7); " AZIMUTH    ELEV  "
+     Print #5, "===="; Tab(7); " =======    ====  "
+3310  '
+3320 '**************PRINT OUT DATA FOR STARS******************************
+3330  NB = Int(B * 10 + 0.5) / 10
+3340 GoSub 3100
+3385 'If NOLINES > PMAX Then GoTo 3386 Else GoTo 3402
+3386 'If HEADING = 1 Then Print #5,
+3389 'GoTo 3200
+3402 If SUNNO = 1 Then GoTo 3403 Else GoTo 3410
+3403  RA = SUNRA
+3404  DEC = SUNDEC
+3405 GoTo 3411
+3410  RA = CR: DEC = CD
+
+3411 If PERSON = 1 Then GoTo 3413
+    If PERSON = 2 Then GoTo 3417
+
+3412 If UDISPLAY = 1 Then GoTo 3413 Else GoTo 3415
+3413   Let LAT = ULATD: lon = ulond
+   AELEV = UAELEV: BELEV = UBELEV
+GoTo 3418
+3415 If YDISPLAY = 1 Then GoTo 3417 Else GoTo 3418
+3417 Let LAT = ylatd: lon = ylond
+   AELEV = YAELEV: BELEV = YBELEV
+
+3418 GoSub 4000
+3419  If EL < AELEV Or EL > BELEV Then GoTo 3420 Else GoTo 3432
+3420  'Print #5,
+
+FLAG1 = 0
+GoTo 2530
+3432 If ((T - FLAG1) > 1.5 * DINC / 1440) Then GoTo 3433 Else GoTo 3434
+3433  NOLINES = NOLINES + 1: GoSub 5700: Print #5,
+3434 FLAG1 = T ' printout being done
+NOLINES = NOLINES + 1: GoSub 5700
+Print #5, UTC; EST;
+3435 Print #5, Tab(9); Format(FormatNumber(FNA(AZ), 1), "@@@@@"); Tab(18); Format(FormatNumber(FNA(EL), 1), "@@@@@");
+3437 If STARNUM = 1 And SUNNO = 1 Then GoTo 3438 Else GoTo 3442
+3438  RAH = (SUNRA / TUPI) * 24 + 0.000347222: IRAP1 = Int(RAH): IRAP2 = Int((RAH - IRAP1) * 60)
+3440 Print #5, Tab(26); Format(FormatNumber(FNA(DEC), 1), "@@@@@"); Tab(34); Format(FormatNumber(IRAP1, 0), "@@@"); "H "; Format(FormatNumber(IRAP2, 0), "@@"); "M";
+3442 Print #5,
+ 
+3445 GoTo 2529
+3500 '***********SUBROUTINE TO DETERMINE MONTH OF THE YEAR******************
+     If NM1 = 1 Then Let MO = "JAN"
+     If NM1 = 2 Then Let MO = "FEB"
+     If NM1 = 3 Then Let MO = "MAR"
+     If NM1 = 4 Then Let MO = "APR"
+     If NM1 = 5 Then Let MO = "MAY"
+     If NM1 = 6 Then Let MO = "JUN"
+     If NM1 = 7 Then Let MO = "JUL"
+     If NM1 = 8 Then Let MO = "AUG"
+     If NM1 = 9 Then Let MO = "SEP"
+     If NM1 = 10 Then Let MO = "OCT"
+     If NM1 = 11 Then Let MO = "NOV"
+     If NM1 = 12 Then Let MO = "DEC"
+3550 Return
+3700 '*******CALCULATION OF SUN'S RA AND DECLINATION at TIME*24 HRS GMt********
+3723  T = DayFraction
+      GoSub 4060
+3724  SUNLON = 6910# * Sin(D8) + 72# * Sin(2 * D8) - 17# * (T5 / 36525 + 1) * Sin(D8) - 7# * Cos(D8 - D19) + 6# * Sin(D1 - D7) + 5# * Sin(4 * D8 - 8# * D16 + 3 * D19) - 5# * Cos(2 * D8 - 2 * D13) - 4# * Sin(D8 - D13): SUNLON = SUNLON + 4# * Cos(4 * D8 - 8# * D16 + 3 * D19) + 3# * Sin(2 * D8 - 2 * D13) - 3# * Sin(D19) - 3# * Sin(2 * D8 - 2 * D19)
+      SUNLON = D7 + TUPI * SUNLON / 1296000#
+      SUNDEC = Sin(SUNLON) * 0.397821: SUNDEC = FNATAN2(SUNDEC, Sqr(1 - Abs(SUNDEC) * Abs(SUNDEC)))
+      SUNRAC = Cos(SUNLON) / Cos(SUNDEC)
+      SUNRA = Sin(SUNLON) * 0.917463 / Cos(SUNDEC): SUNRA = FNATAN2(SUNRA, SUNRAC): SUNRA = SUNRA - Int(SUNRA / TUPI) * TUPI 'RA AT TIME/24 HOURS UTC
+3737 If SUNRA < 0 Then Let SUNRA = SUNRA + TUPI
+3738 If SUNRA > TUPI Then Let SUNRA = SUNRA - TUPI
+3740 If T > 0.0001 Then GoTo 3747 Else GoTo 3744
+3744 Let SUNRAS = SUNRA 'RA AT ZERO HOURS UTC
+3747 Return
+3800 '*****SUBROUTINE TO CALCULATE GEOCENTRIC MOON DISTANCE AT UTC NOON******
+3801  PRANGE = RANGE
+3803  T = 0.5 'TIME AT NOON
+3804 GoSub 4060
+3810  RANGE = 60.36298 - 3.27746 * Cos(D2) - 0.57994 * Cos(D2 - 2 * D4) - 0.46357 * Cos(2 * D4) - 0.08904 * Cos(2 * D2) + 0.03865 * Cos(2 * D2 - 2 * D4) - 0.03237 * Cos(2 * D4 - D8): RANGE = RANGE - 0.02688 * Cos(D2 + 2 * D4) - 0.02358 * Cos(D2 - 2 * D4 + D8) - 0.0203 * Cos(D2 - D8) + 0.01719 * Cos(D4) + 0.01671 * Cos(D2 + D8)
+3815  RANGE1 = 0.01247 * Cos(D2 - 2 * D3) + 0.00704 * Cos(D8) + 0.00529 * Cos(2 * D4 + D8) - 0.00524 * Cos(D2 - 4 * D4) + 0.00398 * Cos(D2 - 2 * D4 - D8) - 0.00366 * Cos(3 * D2): RANGE1 = RANGE1 - 0.00295 * Cos(2 * D2 - 4 * D4) - 0.00263 * Cos(D4 + D8) + 0.00249 * Cos(3 * D2 - 2 * D4) - 0.00221 * Cos(D2 + 2 * D4 - D8)
+3816  RANGE2 = 0.00185 * Cos(2 * D3 - 2 * D4) - 0.00161 * Cos(2 * D4 - 2 * D8) + 0.00147 * Cos(D2 + 2 * D3 - 2 * D4) - 0.00142 * Cos(4 * D4) + 0.00139 * Cos(2 * D2 - 2 * D4 + D8) - 0.00118 * Cos(D2 - 4 * D4 + D8) - 0.00116 * Cos(2 * D2 + 2 * D4) - 0.0011 * Cos(2 * D2 - D8)
+3817  RANGE = RANGE + RANGE1 + RANGE2
+3820  SEMIDIA = 936.74867 / RANGE 'GEOCENTRIC SEMIDIAMETER IN MINUTES OF ARC
+3825  RANGE = RANGE * 6378.16 'CHANGE DISTANCE FROM EQUATORIAL EARTH RADII TO KM
+3840 If PRANGE > RANGE Then GoTo 3860
+3842 'MOON GETTING FARTHER FROM EARTH
+3843 If GEE <> "P" Then GoTo 3846 Else GoTo 3870
+3846  GEE = "P"
+3848 GoTo 3866
+3860 'MOON GETTING CLOSER TO EARTH
+3862 If GEE <> "A" Then GoTo 3864 Else GoTo 3870
+3864  GEE = "A"
+3866  PDAYS = 0
+3870  PDAYS = PDAYS + 1
+3900 Return
+4000 '******************SUBROUTINE TO CALCULATE GHA and GEOCENTRIC ELEVATION*********************
+If MENU = 2 Then GoTo 4001 Else GoTo 4010
+4001 Let FLAG5 = 1 ' don't correct elevation for earth diameter with the stars
+If cboCelestial.ListIndex > 1 Then GoTo 4004
+4003    RA = SUNRA: DEC = SUNDEC
+        GoTo 4005
+4004 CR = (Val(txtCelestialRAhours.Text) + Val(txtCelestialRAminutes.Text) / 60) 'RA in hours
+     CD = Val(txtCelestialDec.Text) 'Declination in degrees
+     
+     CR = CR * PI / 12 ' RA in Radians
+     CD = CD * PI / 180 'Declination in radians
+     RA = CR: DEC = CD
+4005 If PERSON = 1 Then GoTo 4006
+    If PERSON = 2 Then GoTo 4008
+
+    If UDISPLAY = 1 Then GoTo 4006 Else GoTo 4007
+4006   Let LAT = ULATD: lon = ulond
+   AELEV = UAELEV: BELEV = UBELEV
+GoTo 4010
+4007 If YDISPLAY = 1 Then GoTo 4008 Else GoTo 4010
+4008 Let LAT = ylatd: lon = ylond
+   AELEV = YAELEV: BELEV = YBELEV
+ 
+4010  GHA = GAST * 0.2617994 - RA  '**************************************************
+If GHA < 0 Then GoTo 4011 Else GoTo 4012
+4011  GHA = GHA + TUPI
+4012 If GHA > TUPI Then Let GHA = GHA - TUPI
+4013  UHA = lon - GHA
+4014  ELSIN = Cos(LAT) * Cos(UHA) * Cos(DEC) + Sin(DEC) * Sin(LAT)
+4015  ELCOS = Sqr(1 - ELSIN * ELSIN)
+4016  If ELCOS = 0 Then GoTo 4050 ' skip division by zero
+        EL = FNATAN2(ELSIN, ELCOS): UNCEL = EL 'UNCORRECTED ELEVATION
+      
+4020 '******************SUBROUTINE TO CALCULATE AZIMUTH***********************
+     ' START WITH GEOCENTRIC AZIMUTH CALCULATION
+      AZCOS = Sin(DEC) / (Cos(LAT) * Cos(EL)) - Sin(LAT) / Cos(LAT) * (Sin(EL) / Cos(EL))
+      AZSIN = Sin(LAT) * Sin(DEC) + Cos(LAT) * Cos(DEC) * Cos(UHA)
+      AZSIN = Sin(UHA) * Cos(DEC) / Sqr(1 - AZSIN * AZSIN)
+      AZ = FNATAN2(AZSIN, AZCOS)
+     If AZ <= 0 Then Let AZ = AZ + TUPI
+     If cboCelestial.ListIndex > 0 Then GoTo 4050 'do not correct for earth diameter with stars
+     If FLAG5 > 0 Then GoTo 4050
+     ' CORRECTIONS FOR EARTH GEOCENTRIC PARALLAX
+      FAZ = AZ - PI ' CHANGE TO A DIFFERENT COORDINATE CONVENTION FOR GEOCENTRIC AZ
+     If FAX <= 0 Then Let FAX = FAX + TUPI
+      FEL = PI / 2 - EL ' CHANGE TO A DIFFERENT COORDINATE CONVENTION FOR GEOCENTRIC EL
+      PHI = Sin(2 * LAT) * 0.000536775 - 0.000000903 * Sin(4 * LAT) ' LATITUDE ADJUSTMENT FOR OBLATE SPHEROID
+      RHO = (0.99832005 + 0.00168349 * Cos(2 * LAT) - 0.00000355 * Cos(4 * LAT) + 0.00000001 * Cos(6 * LAT)) ' ACTUAL DISTANCE FROM EARTH CENTER IN UNITS OF EQUITORIAL RADIUS
+      H0 = 6378.16 / RANGE ' EARTH EQUATORIAL RADIUS/GEOCENTRIC DISTANCE TO MOON
+      H0 = FNATAN2(Sin(H0), Sqr(1 - Sin(H0) * Sin(H0)))
+     ' CORRECTED AZIMUTH
+      AZ = FAZ + RHO * H0 * Sin(PHI) * Sin(FAZ) / Sin(FEL)
+     ' CORRECTED ELEVATION
+      GAMMA = PHI * Cos(FAZ)
+      EL = RHO * H0 * Sin(FEL - GAMMA) + FEL
+     ' RETURN TO NORMAL COORDINATE CONVENTION
+      AZ = AZ + PI
+     If AZ >= TUPI Then Let AZ = AZ - TUPI
+      EL = PI / 2 - EL
+4050 PERSON = 0: FLAG5 = 0
+Return
+4060 '*********SUBROUTINE TO SET TRACKING ALGORITHM CONSTANTS***************
+      T5 = DATEJ - 53997.5 + T
+      D1 = FNC(0.606434 + 0.03660110129 * T5)
+      D2 = FNC(0.374897 + 0.03629164709 * T5)
+      D3 = FNC(0.259091 + 0.0367481952 * T5)
+      D4 = FNC(0.827362 + 0.03386319198 * T5)
+      D5 = FNC(0.347343 - 0.00014709391 * T5)
+      D7 = FNC(0.779072 + 0.00273790931 * T5)
+      D8 = FNC(0.993126 + 0.0027377785 * T5)
+      D12 = FNC(0.505498 + 0.00445046867 * T5)
+      D13 = FNC(0.140023 + 0.00445036173 * T5)
+      D16 = FNC(0.053856 + 0.00145561327 * T5)
+      D19 = FNC(0.056531 + 0.00023080893 * T5)
+     Return
+4200 '******SUBROUTINE TO DETERMINE MOON WINDOW FOR IARU REGION 1 STATIONS*****
+     If GHA < PI Then GoTo 4245
+     'CHECK TO SEE IF IN ASIAN WINDOW (2 HOURS FOLLOWING FRANKFURT MOONRISE)
+     If DEC >= -0.74545 * GHA + 3.421194 And DEC <= -0.74545 * GHA + 3.799083 Then Let MOONWINDOW = "A"
+     'CHECK TO SEE IF MOON IS IN EUROPEAN WINDOW
+     If DEC >= -0.74545 * GHA + 3.799083 Then Let MOONWINDOW = "E"
+     GoTo 4290
+4245 If DEC >= 0.8075099 * GHA - 0.7186963 Then Let MOONWINDOW = "E"
+     'CHECK TO SEE IF MOON IS IN NORTH AMERICAN WINDOW
+     If DEC <= 0.80751 * GHA - 0.718696 And DEC >= 0.80751 * GHA - 1.128051 Then Let MOONWINDOW = "N"
+4290 Return
+4300 '******SUBROUTINE TO DETERMINE MOON WINDOW FOR IARU REGION 2 STATIONS*****
+     '  CHECK TO SEE IF IN EUROPEAN WINDOW
+     If DEC <= 0.80751 * GHA - 0.7186963 And DEC >= 0.80751 * GHA - 1.128051 Then Let MOONWINDOW = "E"
+     '  CHECK TO SEE IF IN NORTH AMERICAN WINDOW
+     If DEC <= 0.80751 * GHA - 1.128051 And DEC <= -1.3572416 * GHA + 3.350332 Then Let MOONWINDOW = "N"
+     '  CHECK TO SEE IF IN ASIAN WINDOW
+     If DEC >= -1.357242 * GHA + 3.350332 And DEC <= -1.357242 * GHA + 4.038211 Then Let MOONWINDOW = "A"
+     Return
+4400 '******SUBROUTINE TO DETERMINE MOON WINDOW FOR IARU REGION 3 STATIONS*****
+     'CHECK TO SEE IF IN NORTH AMERICAN WINDOW
+     If DEC >= -1.357242 * GHA + 3.350332 And DEC <= -1.357242 * GHA + 4.038211 Then Let MOONWINDOW = "N"
+     'CHECK TO SEE IF IN ASIAN WINDOW
+     If DEC >= -1.357242 * GHA + 4.038211 And DEC <= -0.74545 * GHA + 3.421194 Then Let MOONWINDOW = "A"
+     'CHECK TO SEE IF IN EUROPEAN WINDOW
+     If DEC >= -0.74545 * GHA + 3.421194 And DEC <= -0.74545 * GHA + 3.799083 Then Let MOONWINDOW = "E"
+     Return
+
+5700 '****************SUBROUTINE TO CHECK NUMBER OF LINES ON SCREEN************
+If PMAX = 0 Then GoTo 5720
+5701 If NOLINES <= PMAX Then GoTo 5720 Else GoTo 5702
+     
+5702 Let MAXLINES = NOLINES - PMAX
+
+For I = NOLINES To MAXLINES
+    Print #5,
+    
+    Next I
+    
+     
+      On MENU GoTo 5705, 5706
+5705 NOLINES = 0: GoTo 2272 ' print out new headings on new page
+5706 NOLINES = 0: GoTo 3200 ' print out new headings on a new page
+5720 Return
+5800 '***************ROUTINE TO FREEZE SCREEN WHEN IT FILLS*****************
+5806  If HEADING = 0 Then GoTo 2585 Else GoTo 5808
+5808  HEADING = 0
+5809  If DayEnd = 1 Then GoTo 2585 Else GoTo 2272 ' GO TO NEXT SCREEN ON SPACE BAR OR "RIGHT CURSOR"
+
+5811  DayEnd = 0: If SCRNNO = 1 Then GoTo 5831 Else GoTo 5822
+5822  B = FIRSTTIME(SCRNNO - 1)
+5823  SCRNNO = SCRNNO - 2
+5824  FLAG1 = 2: MPOS = -1: FLAG4 = 0
+5826 GoTo 1470
+5831 PREVDATE = DATEJ - 1
+5832 If PREVDATE = 0 Or PREVDATE < BJUL Then Let PREVDATE = BJUL
+5833 DATEJ = BJUL: AY1 = AY
+5834 AM1 = AM
+5835 AD1 = AD
+5836 If Int(RTIME / 100 + 0.5) > 2 Then Let RTIME = Int(RTIME / 100 - 2 + 0.5) * 100 Else Let MPOS = -1
+5837 If DATEJ = PREVDATE Then GoTo 5840
+5838 GoSub 2790
+5839 GoTo 5837
+5840 DATEJ = DATEJ - 14
+5841 For I = 1 To 13
+5842 DATEJ = DATEJ + 1
+5843 GoSub 3800
+5844 Next I
+5845 DATEJ = PREVDATE
+5846 SCRNNO = 0: MPOS = -1: FLAG4 = 0: FLAG1 = 2: DayEnd = 0
+5847 GoTo 1301  'DISPLAY PREVIOUS PRINTED DAY
+5848 If Asc(INK$) = 0 And Asc(SINK$) = 80 Then GoTo 5849 Else GoTo 5855 'CHECK FOR "CURSOR DOWN" KEY AND GO AHEAD ONE DAY
+5849 PREVDATE = DATEJ: 'GOSUB 8300
+5850 GoTo 2585 'DISPLAY NEXT DAY
+5855 'If Asc(INK$) = 0 And Asc(SINK$) = 79 Then GoTo 2628 'CHECK FOR "END" KEY
+5860 'If Asc(INK$) = 0 And Asc(SINK$) = 71 Then GoTo 5863 'CHECK FOR "HOME" KEY AND GO TO FIRST DAY
+5861 'If Asc(INK$) = 0 And Asc(SINK$) = 73 Then GoSub 8300 Else GoTo 5870 'CHECK FOR "PAGE UP" KEY AND DISPLAY PREVIOUSLY PRINTED DAY
+5862 GoTo 5832
+
+5865  AY1 = AY: AM1 = AM: AD1 = AD
+5868  SCRNNO = 0: DayEnd = 0
+5869 GoTo 1270
+5870 If Asc(INK$) = 0 And Asc(SINK$) = 81 Then GoTo 5875 Else GoTo 5811 'CHECK FOR "PAGE DOWN" KEY AND GO TO LAST DAY
+5875 PREVDATE = DATEJ: TODAY = DATEJ
+5876 AY1 = EY: AM1 = EM: AD1 = ED
+5879 For DATEJ = TODAY + 1 To EJUL - 1
+5880 GoSub 3800
+5881 Next DATEJ
+5882  DATEJ = EJUL
+5883 MPOS = -1: FLAG4 = 0: SCRNNO = 0: GoTo 1301
+5884 GoTo 5811
+5886 Cls
+5892 GoTo 2585
+7000 '******************SUBROUTINE TO VERIFY MONTHS AND DAYS************************
+      M = Val(PP(1))
+      If M = 2 Then Let DMAX = 28
+      If M = 4 Or M = 6 Or M = 9 Or M = 11 Then Let DMAX = 30
+      If M = 1 Or M = 3 Or M = 5 Or M = 7 Or M = 8 Or M = 10 Or M = 12 Then Let DMAX = 31
+     Return
+
+7100 '*****************SUBROUTINE TO EVALUATE STARTING DATE*******************
+'Increment day
+    UTCdate = DateSerial(AY, AM, AD + 1) 'UTC serial day
+    UTCdate = Format(UTCdate, "MMDDYYYY")
+      PP(1) = Left(UTCdate, 2)
+      PP(2) = Mid(UTCdate, 3, 2)
+      PP(3) = Right(UTCdate, 4)
+      AM = Val(Mid(UTCdate, 1, 2)): AD = Val(Mid(UTCdate, 3, 2)): AY = Val(Mid(UTCdate, 5, 4)) 'UTC current date
+      If FNJULIAN(AY, AM, AD) > EJUL Then GoTo 9900 Else GoTo 7146
+7146 Return
+7150 '******************SUBROUTINE TO EVALUATE ENDING DATE********************
+7193 If FNJULIAN(AY, AM, AD) > FNJULIAN(EY, EM, ED) Then GoTo 9900 Else GoTo 7198
+
+7198 Return
+
+
+8610 ' **************SUBROUTINE TO WRITE TIME, AZ, EL, OBJECT, GHA and DEC TO OUTPUT FILE WHEN IN "REAL TIME" MODE *********************
+    
+'   First prepare to plot the terminator on the Real Time world map
+frmRT.PicMap.Cls
+frmRT.PicMap.Scale (-PI - 0.01, PI / 2)-(PI, (-PI / 2) - 0.083) ' set up scale for actual map in radians
+
+'   Add station locations and callsigns to map
+
+If UDISPLAY = 1 Then GoTo 8612 Else GoTo 8615
+8612 ' plat Home station on map
+    frmRT.PicMap.Circle (-ulond, ULATD), 0.01
+    frmRT.PicMap.CurrentX = -ulond
+    frmRT.PicMap.CurrentY = ULATD
+    frmRT.PicMap.Print frmRT.lblCallsignHome.Caption
+ 
+8615 If YDISPLAY = 1 Then GoTo 8616 Else GoTo 8619
+8616 ' plot DX station on map
+    frmRT.PicMap.Circle (-ylond, ylatd), 0.01
+    frmRT.PicMap.CurrentX = -ylond
+    frmRT.PicMap.CurrentY = ylatd
+    frmRT.PicMap.Print frmRT.lblCallsignDX.Caption
+
+
+'   Test map calibration points follow
+            'frmRT.PicMap.PSet (-PI, -1.396263402), vbBlack '*
+            'frmRT.PicMap.PSet (-PI, 0) '*
+            'frmRT.PicMap.PSet (-PI, 1.396263402) '*
+
+            'frmRT.PicMap.PSet (PI, -1.396263402), vbBlack '*
+            'frmRT.PicMap.PSet (PI, 0) '*
+            'frmRT.PicMap.PSet (PI, 1.396263402) '*
+
+            'frmRT.PicMap.PSet (0, -1.396263402), vbBlack '*
+            'frmRT.PicMap.PSet (0, 0) '*
+            'frmRT.PicMap.PSet (0, 1.396263402) '*
+
+
+8619         ' Calculate terminator
+
+For TLAT = -PI / 2 To PI / 2 Step 0.0174533  ' increment in 1 degree steps
+    For TLON = -PI To PI Step 0.0174533   ' increment in 1 degree steps
+        TUHA = TLON - GHA
+        TELSIN = Cos(TLAT) * Cos(TUHA) * Cos(DEC) + Sin(DEC) * Sin(TLAT)
+        TELCOS = Sqr(1 - TELSIN * TELSIN)
+        If TELCOS = 0 Then GoTo 8630
+        TEL = FNATAN2(TELSIN, TELCOS) 'UNCORRECTED ELEVATION
+ 
+        If TEL < 0 Then frmRT.PicMap.PSet (-TLON, TLAT), vbBlack ' plot a point on the map
+8630 Next TLON
+Next TLAT
+
+
+
+8631 Open "GJAZEL.DAT" For Output As #3   'Now output the updated data to the AZEL file.
+     
+If cboCelestial.Text = "Moon" Then GoTo 8632
+    Print #3, UTCtime; ","; Format(FormatNumber(FNA(UAZ), 1), "@@@@@"); ","; Format(FormatNumber(FNA(UEL), 1), "@@@@@"); ","; cboCelestial.Text; ","; Format(FormatNumber(FNA(GHAT), 1), "@@@@@"); ","; Format(FormatNumber(FNA(DECT), 1), "@@@@@")
+    frmRT.lblTopocentric.Visible = "FALSE"
+    frmRT.lblGHA.Visible = "False"
+    frmRT.lblGHAT.Visible = "False"
+    frmRT.lblDEC.Visible = "False"
+    frmRT.lblDECT.Visible = "False"
+   GoTo 8633
+   
+8632 Call Topo(ULATD, RA, GHA, DEC, RAT, GHAT, DECT, RANGE, GAST)
+   Print #3, UTCtime; ","; Format(FormatNumber(FNA(UAZ), 1), "@@@@@"); ","; Format(FormatNumber(FNA(UEL), 1), "@@@@@"); ","; cboCelestial.Text; ","; Format(FormatNumber(FNA(GHAT), 1), "@@@@@"); ","; Format(FormatNumber(FNA(DECT), 1), "@@@@@")
+frmRT.lblTopocentric.Visible = "True"
+frmRT.lblGHA.Visible = "True"
+frmRT.lblGHAT.Visible = "True"
+frmRT.lblDEC.Visible = "True"
+frmRT.lblDECT.Visible = "True"
+If DECT < PREVDECT Then frmRT.lblDECT.ForeColor = &HFF& Else Let frmRT.lblDECT.ForeColor = &H80000012  'red else black
+frmRT.lblGHAT.Caption = Format(FormatNumber(FNA(GHAT), 1), "@@@@@")
+frmRT.lblDECT.Caption = Format(FormatNumber(FNA(DECT), 1), "@@@@@")
+Let PREVDECT = DECT
+8633 Close #3
+         
+Return
+
+9900 If TIMERON = 1 Then GoTo 9994 Else GoTo 9990 'Real Time is operating in auto run mode, triggered by timer
+
+9990 If MODE = 1 Then Close #5 ' Close the file of the output
+'Open the output file GJTRACKER.TXT to review output
+    
+    file = "C:\fileerror.dat"
+    dTaskID = Shell(TEXTEDITORPATH + " " + "GJTRACKER.TXT", vbNormalFocus)
+    
+GoTo 9998
+
+9994 If Val(Right(UTCtime, 2)) < 1 Then GoTo 9995
+If Val(Right(UTCtime, 2)) > 1 And RT = 1 Then GoTo 9995
+
+GoTo 9999
+9995 GoSub 8610 'Write values to file at the beginning of every minute
+Let RT = 0 ' prevent Real Time window from being re-activated on subsequent seconds
+9997 GoTo 9999
+9998 'Stop the program and put it in standby for another run
+    Call cmdStop_Click
+    
+9999 txtDateCalc.Visible = False
+        
+End Sub
+
+
+Private Sub cmdSET_Click()
+mstrLastDir = App.Path ' Set program location as the default directory for all files
+
+If cmdStop.Visible = True Then GoTo 900
+' Read New Defaults
+    YDISPLAY = chkDisplayHome.Value
+    YCSIGN = txtCallsignHome.Text
+    YLOCATOR = txtLocatorHome.Text
+    ylatd = txtLatDegHome.Text
+    YLATM = txtLatMinHome.Text
+    YLATS = txtLatSecHome.Text
+    YLatDir$ = cboLatDirHome.Text
+    ylond = txtLonDegHome.Text
+    YLONM = txtLonMinHome.Text
+    YLONS = txtLonSecHome.Text
+    YLonDir$ = cboLonDirHome.Text
+    YABOVED = txtAboveHome.Text
+    YBELOWD = txtBelowHome.Text
+    UNITS = cboUnits.ListIndex
+    DXDISPLAY = chkDisplayDX.Value
+    DXCSIGN = txtCallsignDX.Text
+    DXLOCATOR = txtLocatorDX.Text
+    DXLATD = txtLatDegDX.Text
+    DXLATM = txtLatMinDX.Text
+    DXLATS = txtLatSecDX.Text
+    DXLatDir$ = cboLatDirDX.Text
+    DXLOND = txtLonDegDX.Text
+    DXLONM = txtLonMinDX.Text
+    DXLONS = txtLonSecDX.Text
+    DXLonDir$ = cboLonDirDX.Text
+    DXABOVED = txtAboveDX.Text
+    DXBELOWD = txtBelowDX.Text
+    TEMRA = Val(txtNoise.Text)
+    Celestial = cboCelestial.ListIndex
+    OBJECTNAME = txtEnterObject.Text
+    If cboEsc.Text = "N" Then Let ESCANS = 1 Else Let ESCANS = 2
+    CELESTIALRAHR = txtCelestialRAhours.Text
+    CELESTIALRAMIN = txtCelestialRAminutes.Text
+    CELESTIALDECD = txtCelestialDec.Text
+    OPERATION = cboOperation.ListIndex
+    If cboEsc.Text = "N" Then Let ESCANS = 1 Else Let ESCANS = 2
+    DINC = txtIncrementMinutes.Text
+    PMAX = txtOutputLines.Text
+    MHZ = cboBand.Text
+    REGION = cboRegion.Text
+    TZ = Val(txtTimeDif.Text)
+    TEXTEDITORPATH = txtTextEditor.Text
+    sAdobeRdrPath = txtAdobeReader.Text
+' Check for presence of file
+    If Dir("GJTRACKER.DAT") = "" Then GoTo 2 Else GoTo 3
+2   message = "The file is not where expected.  Make sure all the GJTRACKER files are in the same location as GJTRACKER.EXE!"
+    MsgBox message, , "File Not Found"
+    End
+3     'Continue
+
+ ' Save new default values
+    Open "GJTRACKER.DAT" For Output As #1
+    Write #1, YDISPLAY, YCSIGN, YLOCATOR, ylatd, YLATM, YLATS, YLatDir$, ylond, YLONM, YLONS, YLonDir$, YABOVED, YBELOWD
+    Write #1, DXDISPLAY, DXCSIGN, DXLOCATOR, DXLATD, DXLATM, DXLATS, DXLatDir$, DXLOND, DXLONM, DXLONS, DXLonDir$, DXABOVED, DXBELOWD
+    Write #1, Celestial, OBJECTNAME, CELESTIALRAHR, CELESTIALRAMIN, CELESTIALDECD, OPERATION
+    Write #1, DINC, ESCANS, PMAX, MHZ, REGION, TZ, TEXTEDITORPATH, TEMRA, UNITS, sAdobeRdrPath
+    Close #1
+900 ' Continue
+End Sub
+
+Private Sub cmdStop_Click()
+txtStop.Text = "Stop"
+RT = 1
+TIMERON = 0
+Close 'close any open files
+' ReSet Defaults
+cmdRUN.Visible = True
+cmdStop.Visible = False
+txtDateCalc.Visible = False
+picUTCtime.Visible = False
+picUTCdate.Visible = False
+picUAZ.Visible = False
+picUEL.Visible = False
+picYAZ.Visible = False
+picYEL.Visible = False
+lblAZ.Visible = False
+lblEL.Visible = False
+lbldB.Visible = False
+picDegdB.Visible = False
+lblStartDate.Visible = True
+cboMonthStart.Visible = True
+cboDayStart.Visible = True
+txtYearStart.Visible = True
+Let picPol.Visible = False
+Let lblPol.Visible = False
+frmRT.lblPolDeg.Visible = False
+frmRT.lblPol.Visible = False
+frmRT.lblCallsignHome.Visible = False
+frmRT.lblCallsignDX.Visible = False
+frmRT.lblUAZ.Visible = False
+frmRT.lblYAZ.Visible = False
+frmRT.lblYEL.Visible = False
+frmRT.lblUEL.Visible = False
+
+frmRT.Hide
+
+End Sub
+
+Private Sub Form_Load()
+tmrWatch.Enabled = True
+txtDateCalc.Visible = False
+RT = 1 ' Enable Real Time window to be displayed if Real-Time mode is selected
+txtDateCalc.Text = "": txtSearch.Text = ""
+' Check for presence of file
+    If Dir("GJTRACKER.DAT") = "" Then GoTo 2 Else GoTo 3
+2   message = "The file is not where expected.  Make sure all the GJTRACKER files are in the same location as GJTRACKER.EXE!"
+    MsgBox message, , "File Not Found"
+    End
+3     'Continue
+
+' Recall Defaults
+    Open "GJTRACKER.DAT" For Input As #1
+    Input #1, YDISPLAY, YCSIGN, YLOCATOR, ylatd, YLATM, YLATS, YLatDir$, ylond, YLONM, YLONS, YLonDir$, YABOVED, YBELOWD
+    Input #1, DXDISPLAY, DXCSIGN, DXLOCATOR, DXLATD, DXLATM, DXLATS, DXLatDir$, DXLOND, DXLONM, DXLONS, DXLonDir$, DXABOVED, DXBELOWD
+    Input #1, Celestial, OBJECTNAME, CELESTIALRAHR, CELESTIALRAMIN, CELESTIALDECD, OPERATION
+    Input #1, DINC, ESCANS, PMAX, MHZ, REGION, TZ, TEXTEDITORPATH, TEMRA, UNITS, sAdobeRdrPath
+    Close #1
+' Display Defaults
+    If ESCANS = 1 Then Let cboEsc.Text = "N" Else Let cboEsc.Text = "Y"
+    txtNoise.Text = TEMRA
+    txtTextEditor.Text = TEXTEDITORPATH
+    txtAdobeReader.Text = sAdobeRdrPath
+    chkDisplayHome.Value = YDISPLAY
+    txtCallsignHome.Text = YCSIGN
+    cboOperation.ListIndex = OPERATION
+    cboUnits.ListIndex = UNITS
+    txtLatDegHome.Text = ylatd
+    txtLatMinHome.Text = YLATM
+    txtLatSecHome.Text = YLATS
+    cboLatDirHome.Text = YLatDir$
+    txtLonDegHome.Text = ylond
+    txtLonMinHome.Text = YLONM
+    txtLonSecHome.Text = YLONS
+    cboLonDirHome.Text = YLonDir$
+    txtAboveHome.Text = YABOVED
+    txtBelowHome.Text = YBELOWD
+    
+    chkDisplayDX.Value = DXDISPLAY
+    txtCallsignDX.Text = DXCSIGN
+    
+    txtLatDegDX.Text = DXLATD
+    txtLatMinDX.Text = DXLATM
+    txtLatSecDX.Text = DXLATS
+    cboLatDirDX.Text = DXLatDir$
+    txtLonDegDX.Text = DXLOND
+    txtLonMinDX.Text = DXLONM
+    txtLonSecDX.Text = DXLONS
+    cboLonDirDX.Text = DXLonDir$
+    txtAboveDX.Text = DXABOVED
+    txtBelowDX.Text = DXBELOWD
+    
+    If Celestial > 1 Then GoTo 10 Else GoTo 20
+10 cboCelestial.Text = cboCelestial.List(Celestial)
+    If Celestial = 6 Then txtEnterObject.Visible = True
+    If OBJECTNAME > "" Then Let txtEnterObject.Text = OBJECTNAME Else Let OBJECTNAME = "(Enter Name Here)"
+    txtCelestialRAhours.Visible = True
+    txtCelestialRAminutes.Visible = True
+    txtCelestialDec.Visible = True
+    lblObjectRA.Visible = True
+    lblObjectDeclination.Visible = True
+    lblObjectHours.Visible = True
+    lblObjectMin.Visible = True
+    lblObjectDegrees.Visible = True
+    txtCelestialRAhours.Text = CELESTIALRAHR
+    txtCelestialRAminutes.Text = CELESTIALRAMIN
+    txtCelestialDec.Text = CELESTIALDECD
+    
+    GoTo 30
+20 cboCelestial.ListIndex = Celestial
+    txtEnterObject.Visible = False
+    txtCelestialRAhours.Visible = False
+    txtCelestialRAminutes.Visible = False
+    txtCelestialDec.Visible = False
+     lblObjectRA.Visible = False
+     lblObjectDeclination.Visible = False
+     lblObjectHours.Visible = False
+     lblObjectMin.Visible = False
+     lblObjectDegrees.Visible = False
+     
+30  txtIncrementMinutes.Text = DINC
+    txtOutputLines.Text = PMAX
+    cboBand.Text = MHZ
+    cboRegion.Text = REGION
+        
+    txtLocatorHome.Text = YLOCATOR
+    txtLocatorDX.Text = DXLOCATOR
+    txtTimeDif.Text = TZ
+    
+' Set Dates
+    cboMonthStart.ListIndex = MONTH(Date) - 1
+    cboDayStart.ListIndex = Day(Date) - 1
+    txtYearStart = Year(Date)
+
+    cboMonthEnd.ListIndex = MONTH(Date) - 1
+    cboDayEnd.ListIndex = Day(Date) - 1
+    txtYearEnd = Year(Date)
+
+
+
+
+
+
+
+
+End Sub
+
+Private Sub cboCelestial_Click()
+frmRT.PicMap.Cls
+
+txtEnterObject.Visible = False
+If cboCelestial.List(cboCelestial.ListIndex) = "Moon" Then GoTo 6
+If cboCelestial.List(cboCelestial.ListIndex) = "Sun" Then GoTo 6 Else: GoTo 4
+
+4   txtCelestialRAminutes.Visible = True
+    txtCelestialRAhours.Visible = True
+    txtCelestialDec.Visible = True
+    lblObjectDegrees.Visible = True
+    lblObjectDeclination.Visible = True
+    lblObjectRA.Visible = True
+    lblObjectMin.Visible = True
+    lblObjectHours.Visible = True
+    
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cassiopia A" Then Let txtCelestialRAhours.Text = "23"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cassiopia A" Then Let txtCelestialRAminutes.Text = "21"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cassiopia A" Then Let txtCelestialDec.Text = "+58.6"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cold Sky North" Then Let txtCelestialRAhours.Text = "9"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cold Sky North" Then Let txtCelestialRAminutes.Text = "30"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cold Sky North" Then Let txtCelestialDec.Text = "+40"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cold Sky South" Then Let txtCelestialRAhours.Text = "5"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cold Sky South" Then Let txtCelestialRAminutes.Text = "30"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cold Sky South" Then Let txtCelestialDec.Text = "-40"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cygnus A" Then Let txtCelestialRAhours.Text = "19"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cygnus A" Then Let txtCelestialRAminutes.Text = "58"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Cygnus A" Then Let txtCelestialDec.Text = "+40.6"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Sagittarius" Then Let txtCelestialRAhours.Text = "17"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Sagittarius" Then Let txtCelestialRAminutes.Text = "46"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Sagittarius" Then Let txtCelestialDec.Text = "-29"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Taurus A" Then Let txtCelestialRAhours.Text = "5"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Taurus A" Then Let txtCelestialRAminutes.Text = "32"
+    If cboCelestial.List(cboCelestial.ListIndex) = "Taurus A" Then Let txtCelestialDec.Text = "+22"
+    If cboCelestial.List(cboCelestial.ListIndex) = "(Other)" Then Let txtCelestialRAhours.Text = CELESTIALRAHR
+    If cboCelestial.List(cboCelestial.ListIndex) = "(Other)" Then Let txtCelestialRAminutes.Text = CELESTIALRAMIN
+    If cboCelestial.List(cboCelestial.ListIndex) = "(Other)" Then Let txtCelestialDec.Text = CELESTIALDECD
+    If cboCelestial.List(cboCelestial.ListIndex) = "(Other)" Then Let txtEnterObject.Visible = True
+    If cboCelestial.List(cboCelestial.ListIndex) = "(Other)" Then GoTo 5 Else GoTo 8
+5   If OBJECTNAME > "" Then Let txtEnterObject.Text = OBJECTNAME Else Let txtEnterObject.Text = "(Enter Name Here)"
+    GoTo 8
+6   txtCelestialRAminutes.Visible = False
+    txtCelestialRAhours.Visible = False
+    txtCelestialDec.Visible = False
+    lblObjectDegrees.Visible = False
+    lblObjectDeclination.Visible = False
+    lblObjectRA.Visible = False
+    lblObjectMin.Visible = False
+    lblObjectHours.Visible = False
+8 ' Continue
+Call cmdStop_Click
+
+End Sub
+
+Private Sub txtTest_Change()
+'txtTest.Text = lstCelestial.List(lstCelestial.ListIndex)
+
+
+
+
+
+End Sub
+
+
+Private Sub lblDegdB_Click()
+
+End Sub
+
+Private Sub Timer1_Timer()
+
+End Sub
+
+Private Sub Text1_Change()
+
+End Sub
+
+Private Sub Label1_Click()
+
+End Sub
+
+Private Sub lblTextEditor_Click()
+If lblTextEditor.Caption = "Text Editor" Then GoTo 10 Else GoTo 20
+10    Let lblTextEditor.Caption = "Adobe Rdr"
+    Let txtTextEditor.Visible = False
+    Let txtAdobeReader.Visible = True
+
+GoTo 30
+20 If lblTextEditor.Caption = "Adobe Rdr" Then GoTo 22 Else GoTo 30
+22    Let lblTextEditor.Caption = "Text Editor"
+    Let txtTextEditor.Visible = True
+    Let txtAdobeReader.Visible = False
+    
+30 ' Continue
+End Sub
+
+Private Sub tmrWatch_Timer()
+
+If TIMERON = 1 Then Call cmdRUN_Click
+
+End Sub
+
+Private Sub txtCallsignDX_KeyPress(KeyAscii As Integer)
+If cboEsc.Text = "Y" Then GoTo 1 Else GoTo 6
+
+
+1 Dim CALLSIGN As String: txtSearch.Text = ""
+
+If Left(txtDateCalc.Text, 5) = "Exact" Then GoTo 2 Else GoTo 3
+
+2 If KeyAscii = 91 Then
+    Let txtSearch.Text = "[[[[["
+    Call cmdDXLookup_Click
+    KeyAscii = 0
+    GoTo 6
+End If
+If KeyAscii = 93 Then
+    Let txtSearch.Text = "]]]]]"
+    Call cmdDXLookup_Click
+    KeyAscii = 0
+    GoTo 6
+End If
+
+3 If KeyAscii = 91 Or KeyAscii = 93 Then Let KeyAscii = 0
+
+If KeyAscii = 8 Then txtCallsignDX.Text = "" 'clear field on Backspace
+If KeyAscii > 122 Then txtCallsigDX.Text = ""
+
+CALLSIGN = txtCallsignDX.Text
+
+Let I = Len(CALLSIGN)
+If I = 12 Then Let KeyAscii = 0
+    Let N = KeyAscii
+ If KeyAscii = 42 Then GoTo 4
+ If KeyAscii < 47 Then GoTo 5
+ If KeyAscii < 58 Then GoTo 4
+ 
+    If N > 96 Then Let N = N - 32
+4   txtCallsignDX.Text = Left(CALLSIGN, I) + Chr(N)
+    KeyAscii = 10
+
+5 ' Continue
+If KeyAscii = 27 Then Call cmdDXLookup_Click
+6 'continue
+txtCallsignDX.SetFocus
+
+End Sub
+
+Private Sub txtCallsignHome_KeyPress(KeyAscii As Integer)
+If cboEsc.Text = "Y" Then GoTo 1 Else GoTo 6
+
+1 Dim CALLSIGN As String: txtSearch.Text = ""
+
+If Left(txtDateCalc.Text, 5) = "Exact" Then GoTo 2 Else GoTo 3
+
+2 If KeyAscii = 91 Then
+    Let txtSearch.Text = "[[[[["
+    Call cmdHomeLookup_Click
+    KeyAscii = 0
+    GoTo 6
+End If
+If KeyAscii = 93 Then
+    Let txtSearch.Text = "]]]]]"
+    Call cmdHomeLookup_Click
+    KeyAscii = 0
+    GoTo 6
+End If
+'txtCallsignHome.SetFocus
+
+3 If KeyAscii = 91 Or KeyAscii = 93 Then Let KeyAscii = 0
+
+If KeyAscii = 8 Then txtCallsignHome.Text = "" 'clear field on Backspace
+If KeyAscii > 122 Then txtCallsignHome.Text = ""
+
+CALLSIGN = txtCallsignHome.Text
+
+Let I = Len(CALLSIGN)
+If I = 12 Then Let KeyAscii = 0
+    Let N = KeyAscii
+ If KeyAscii = 42 Then GoTo 4
+ If KeyAscii < 47 Then GoTo 5
+ If KeyAscii < 58 Then GoTo 4
+ 
+    If N > 96 Then Let N = N - 32
+4   txtCallsignHome.Text = Left(CALLSIGN, I) + Chr(N)
+    KeyAscii = 10
+
+5 ' Continue
+If KeyAscii = 27 Then Call cmdHomeLookup_Click
+6 'continue
+txtCallsignHome.SetFocus
+
+End Sub
+
+Private Sub txtLocatorDX_KeyPress(KeyAscii As Integer)
+If cboEsc.Text = "Y" Then GoTo 1 Else GoTo 4
+
+1 ' Subroutine to properly format locator
+If KeyAscii = 8 Then txtLocatorDX.Text = ""
+If KeyAscii > 122 Then txtLocatorDX.Text = ""
+
+LOCATOR = txtLocatorDX.Text
+If KeyAscii = 27 Then Call cmdLocatorDXCalc_Click  'Calculate new locator on ESC
+ 
+Let I = Len(LOCATOR)
+If I = 6 Then Let KeyAscii = 0
+Let N = KeyAscii
+ If KeyAscii < 46 Then GoTo 4
+ If KeyAscii < 58 Then GoTo 3
+ If I < 4 Then GoTo 2
+    If N < 97 Then Let N = N + 32
+    GoTo 3
+2   If N > 96 Then Let N = N - 32
+3   txtLocatorDX.Text = Left(LOCATOR, I) + Chr(N)
+    KeyAscii = 10
+
+4 ' Continue
+  
+
+End Sub
+
+
+
+Private Sub txtLocatorHome_KeyPress(KeyAscii As Integer)
+If cboEsc.Text = "Y" Then GoTo 1 Else GoTo 4
+
+1 ' Subroutine to properly format locator
+If KeyAscii = 8 Then txtLocatorHome.Text = ""
+If KeyAscii > 122 Then txtLocatorHome.Text = ""
+
+LOCATOR = txtLocatorHome.Text
+If KeyAscii = 27 Then Call cmdLocatorHomeCalc_Click  'Calculate new locator on ESC
+Let I = Len(LOCATOR)
+If I = 6 Then Let KeyAscii = 0
+Let N = KeyAscii
+ If KeyAscii < 46 Then GoTo 4
+ If KeyAscii < 58 Then GoTo 3
+ If I < 4 Then GoTo 2
+    If N < 97 Then Let N = N + 32
+    GoTo 3
+2   If N > 96 Then Let N = N - 32
+3   txtLocatorHome.Text = Left(LOCATOR, I) + Chr(N)
+    KeyAscii = 10
+
+4 ' Continue
+
+
+End Sub
+
+Private Sub txtTimeDif_Change()
+Call cmdStop_Click
+End Sub
+
+Private Sub txtYearEnd_Click()
+'For I = 1 To 2
+Call cboMonthEnd_Click
+Call cboDayEnd_Click
+'Next I
+End Sub
+
+Private Sub txtYearStart_Click()
+'For I = 1 To 2
+AM = cboMonthStart.ListIndex + 1
+If cboDayStart.ListIndex > -1 Then Let AD = cboDayStart.ListIndex + 1 Else Let AD = Val(cboDayStart.Text)
+AY = Val(txtYearStart.Text)
+On (AM) GoTo 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+28 If AD > 28 Then GoTo 29 Else GoTo 31
+29 Let Max = 28
+If (AY Mod 4) = 0 Then Let Max = 29
+If (AY Mod 100) = 0 Then Let Max = 28
+If (AY Mod 400 = 0) And (AY Mod 100 = 0) Then Max = 29
+If AD < Max Then GoTo 31 Else Let AD = Max
+GoTo 31
+30 If AD > 30 Then Let AD = 30: GoTo 31
+31 'Continue
+Let cboDayStart.Text = AD
+Let txtYearStart.Text = Str(AY)
+startdate = DateSerial(AY, AM, AD)
+startdate = DateValue(Str(startdate))
+Let cboMonthEnd.ListIndex = cboMonthStart.ListIndex
+If cboDayStart.ListIndex > -1 Then Let cboDayEnd.ListIndex = cboDayStart.ListIndex
+Let txtYearEnd.Text = txtYearStart.Text
+'Next I
+Call cboMonthStart_Click
+End Sub
