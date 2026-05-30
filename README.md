@@ -50,6 +50,8 @@ doesn't, open that URL manually.
 
 ## Using the app
 
+![GJTRACKER App Interface](tracker.png)
+
 1. Fill in **Home Station** latitude/longitude — or type a Maidenhead locator
    (e.g. `CN87xq`) and click **Locator → Lat/Lon**.
 2. Optionally enable **DX Station** and do the same.
